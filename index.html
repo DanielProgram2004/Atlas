@@ -10,6 +10,7 @@
 <script src="chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <meta name="theme-color" content="#066fd1">
+<meta name="robots" content="noindex, nofollow">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -203,6 +204,7 @@ form.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .exhead{display:flex;align-items:center;gap:6px;padding:12px 12px 0;font-size:12px;font-weight:600;color:var(--c)}.exhead::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--c)}.excard{border-top:3px solid var(--line)}
 .lock{position:fixed;inset:0;background:var(--bg);display:none;place-items:center;z-index:200;padding:20px}
 .lock.open{display:grid}
+#gate{z-index:210}
 .lockbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:28px;width:100%;max-width:340px;text-align:center}
 .lockbox h2{font-size:20px;margin-bottom:4px}
 .chatbox .btn-icon{padding:0 10px}
@@ -471,11 +473,7 @@ form.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
         <div class="card">
           <h3 class="card-title">Cuenta y sincronización</h3>
           <div class="ins mb" id="secStatus"></div>
-          <form id="fAuth" class="stack">
-            <div class="f"><label>Correo</label><input class="form-control" name="email" type="email" autocomplete="username"></div>
-            <div class="f"><label>Contraseña (mínimo 8)</label><input class="form-control" name="password" type="password" autocomplete="current-password"></div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" data-auth="in">Entrar</button><button type="button" class="btn" data-auth="up">Crear cuenta</button><button type="button" class="btn" id="btnLogout">Cerrar sesión</button></div>
-          </form>
+          <div><button type="button" class="btn" id="btnLogout">Cerrar sesión</button></div>
           <details class="mt"><summary class="muted" style="cursor:pointer;font-size:13px">Conexión con Supabase</summary>
             <form id="fSb" class="stack mt">
               <div class="f"><label>Project URL</label><input class="form-control" name="sbUrl" placeholder="https://xxxx.supabase.co"></div>
@@ -529,6 +527,15 @@ form.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
   </main>
 </div>
 <div class="tst" id="toast"></div>
+<div class="lock open" id="gate"><form class="lockbox" id="fGate">
+  <div class="logo" style="margin:0 auto 14px;width:44px;height:44px;font-size:20px">A</div>
+  <h2>Atlas</h2><p class="muted mb" id="gateSub">Inicia sesión para continuar.</p>
+  <input class="form-control mb" name="email" type="email" autocomplete="username" placeholder="Correo" required>
+  <input class="form-control" name="password" type="password" autocomplete="current-password" placeholder="Contraseña" required>
+  <button class="btn btn-primary w-100 mt">Entrar</button>
+  <button type="button" class="btn w-100 mt" id="gateUp">Crear cuenta</button>
+  <p id="gateMsg" class="mt" style="min-height:20px;font-size:13px"></p>
+</form></div>
 <div class="lock" id="lock"><form class="lockbox" id="fLock">
   <div class="logo" style="margin:0 auto 14px;width:44px;height:44px;font-size:20px">A</div>
   <h2>Atlas está bloqueado</h2><p class="muted">Ingresa tu PIN para continuar.</p>
@@ -630,25 +637,32 @@ async function startSession(user){
   }catch(e){ console.warn(e); setSync('error', e.message); }
   if(view==='ajustes') render();
 }
+function hideGate(){ $('#gate').classList.remove('open'); }
+function showGate(msg){ $('#gate').classList.add('open'); if(msg) $('#gateSub').textContent = msg; }
 async function initCloud(){
-  if(!CFG.sbUrl || !CFG.sbKey || !window.supabase){ setSync('local'); return; }
+  if(!CFG.sbUrl || !CFG.sbKey || !window.supabase){
+    // Sin conexión: solo se permite seguir si este dispositivo ya tenía una sesión guardada
+    const had = Object.keys(localStorage).some(k=>/^sb-.*-auth-token$/.test(k));
+    if(had){ hideGate(); setSync('local','Sin conexión'); } else showGate('Sin conexión. Conéctate a internet para iniciar sesión.');
+    return; }
   setSync('connecting');
   try{
     cloud.sb = window.supabase.createClient(CFG.sbUrl, CFG.sbKey, {auth:{persistSession:true, autoRefreshToken:true}});
     const {data:{session}} = await cloud.sb.auth.getSession();
-    if(session?.user) await startSession(session.user); else setSync('login');
-    cloud.sb.auth.onAuthStateChange((ev, sess)=>{ if(ev==='SIGNED_OUT'){ cloud.ready = false; cloud.user = null; setSync('login'); if(view==='ajustes') render(); } });
-  }catch(e){ console.warn('cloud', e); setSync('local', e.message); }
+    if(session?.user){ hideGate(); await startSession(session.user); } else { setSync('login'); showGate(); }
+    cloud.sb.auth.onAuthStateChange((ev, sess)=>{ if(ev==='SIGNED_OUT'){ cloud.ready = false; cloud.user = null; setSync('login'); showGate(); } });
+  }catch(e){ console.warn('cloud', e); setSync('local', e.message); const had = Object.keys(localStorage).some(k=>/^sb-.*-auth-token$/.test(k)); if(had) hideGate(); else showGate('No se pudo conectar. Revisa tu internet.'); }
 }
-async function authAction(kind){
-  const f = $('#fAuth'), email = f.email.value.trim(), password = f.password.value;
+async function authAction(kind, form){
+  const f = form || $('#fGate'), email = f.email.value.trim(), password = f.password.value;
   if(!cloud.sb) return toast('Primero guarda la conexión de Supabase');
   if(!email || password.length<8) return toast('Escribe tu correo y una contraseña de 8 caracteres o más');
   const fn = kind==='up' ? cloud.sb.auth.signUp({email,password,options:{emailRedirectTo: location.origin+location.pathname}}) : cloud.sb.auth.signInWithPassword({email,password});
   const {data, error} = await fn;
-  if(error) return toast(error.message.includes('Invalid login')?'Correo o contraseña incorrectos':error.message);
-  if(kind==='up' && !data.session) return toast('Te enviamos un correo para confirmar la cuenta. Confírmalo y luego entra.');
-  f.password.value=''; toast('Sesión iniciada'); await startSession(data.user || data.session.user);
+  const say = m => { const g = $('#gateMsg'); if(g && $('#gate').classList.contains('open')) g.textContent = m; else toast(m); };
+  if(error) return say(/invalid login/i.test(error.message)?'Correo o contraseña incorrectos.':/not confirmed/i.test(error.message)?'Confirma tu correo antes de entrar.':/signups? not allowed|disabled/i.test(error.message)?'Esta app es privada: no se aceptan cuentas nuevas.':error.message);
+  if(kind==='up' && !data.session) return say('Te enviamos un correo para confirmar la cuenta. Confírmalo y luego entra.');
+  f.password.value=''; hideGate(); toast('Sesión iniciada'); await startSession(data.user || data.session.user);
 }
 document.addEventListener('visibilitychange', async ()=>{
   if(document.visibilityState==='hidden'){ hiddenAt = Date.now(); if(cloud.ready){ clearTimeout(cloud.timer); syncNow(); } return; }
@@ -1459,9 +1473,9 @@ $('#aiTest').addEventListener('click',testAI);
 $('#fSb').addEventListener('submit',async e=>{ e.preventDefault(); const f = e.target; const u = f.sbUrl.value.trim().replace(/\/+$/,''), k = f.sbKey.value.trim();
   if(u && !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u)) return toast('La URL debe verse como https://xxxx.supabase.co');
   CFG.sbUrl = u; CFG.sbKey = k; saveCfg(); cloud.ready = false; await initCloud(); render(); toast('Conexión guardada'); });
-$('#fAuth').addEventListener('submit',e=>{ e.preventDefault(); authAction('in'); });
-document.querySelector('[data-auth="up"]').addEventListener('click',()=>authAction('up'));
-$('#btnLogout').addEventListener('click',async ()=>{ if(cloud.ready){ clearTimeout(cloud.timer); await syncNow(); } await cloud.sb?.auth.signOut(); cloud.ready = false; toast('Sesión cerrada'); render(); });
+$('#btnLogout').addEventListener('click',async ()=>{ if(cloud.ready){ clearTimeout(cloud.timer); await syncNow(); } await cloud.sb?.auth.signOut(); cloud.ready = false; try{ localStorage.removeItem(KEY); }catch(e){} location.reload(); });
+$('#fGate').addEventListener('submit',e=>{ e.preventDefault(); $('#gateMsg').textContent='Entrando…'; authAction('in', e.target); });
+$('#gateUp').addEventListener('click',()=>{ $('#gateMsg').textContent='Creando cuenta…'; authAction('up', $('#fGate')); });
 $('#fPin').addEventListener('submit',async e=>{ e.preventDefault(); const p = e.target.pin.value.trim();
   if(!/^\d{4,8}$/.test(p)) return toast('El PIN debe tener de 4 a 8 números');
   if(!crypto?.subtle) return toast('Este navegador no permite crear un PIN');
