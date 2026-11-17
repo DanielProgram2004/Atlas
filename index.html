@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Atlas · Asistente personal</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +13,11 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg">
-<link rel="apple-touch-icon" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Atlas">
 <style>
 :root{
   --bg:#f6f8fb;--panel:#FFFFFF;--panel2:#f6f8fb;--line:#e6e7e9;--text:#182433;--muted:#6b7a90;
@@ -211,6 +215,11 @@ form.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
 .msg.a{border:1px solid var(--line)}
 .stack{display:flex;flex-direction:column;gap:12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.pair{grid-template-columns:1fr}}
 .tst{opacity:0;pointer-events:none}.tst.show{opacity:1}
+@media(max-width:860px){
+  .side{padding-bottom:calc(6px + env(safe-area-inset-bottom))}
+  main{padding-bottom:calc(90px + env(safe-area-inset-bottom));padding-top:calc(18px + env(safe-area-inset-top))}
+  input,select,textarea{font-size:16px!important}
+}
 </style>
 </head>
 <body>
