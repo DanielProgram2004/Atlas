@@ -1,5 +1,5 @@
 // Atlas: caché de la app para abrirla rápido y sin conexión. Los datos siempre van por red.
-const CACHE = 'atlas-v1';
+const CACHE = 'atlas-v2';
 const ASSETS = ['./', './index.html', './tabler.min.css', './chart.umd.js', './exercises.json', './manifest.json', './icon.svg'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

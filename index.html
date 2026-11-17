@@ -569,7 +569,10 @@ const CORE_KEYS = ['budget','routine','profile','sleepGoal','name','habits','hab
 const CFG_KEY = 'atlas_cfg';
 const cloud = {sb:null, user:null, ready:false, last:{}, timer:null, busy:false, again:false};
 let CFG = (()=>{ try{ return JSON.parse(localStorage.getItem(CFG_KEY)||'{}'); }catch(e){ return {}; } })();
-CFG = Object.assign({sbUrl:'', sbKey:'', ollamaUrl:'http://localhost:11434', ollamaModel:''}, CFG);
+// Conexión de Supabase del proyecto (clave pública: la seguridad la dan las reglas RLS de la tabla)
+const SB_DEFAULT = {sbUrl:'https://pqvosonrbctanztwklmf.supabase.co', sbKey:'sb_publishable_7Vyq91EdPY6lohoqg2SfSQ_c6GEcRS1'};
+CFG = Object.assign({ollamaUrl:'http://localhost:11434', ollamaModel:''}, SB_DEFAULT, CFG);
+if(!CFG.sbUrl || !CFG.sbKey) Object.assign(CFG, SB_DEFAULT);
 const saveCfg = () => { try{ localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); }catch(e){} };
 const sleepMs = ms => new Promise(r=>setTimeout(r,ms));
 async function withRetry(fn){ try{ return await fn(); }catch(e){ await sleepMs(700+Math.random()*900); return fn(); } }
@@ -641,7 +644,7 @@ async function authAction(kind){
   const f = $('#fAuth'), email = f.email.value.trim(), password = f.password.value;
   if(!cloud.sb) return toast('Primero guarda la conexión de Supabase');
   if(!email || password.length<8) return toast('Escribe tu correo y una contraseña de 8 caracteres o más');
-  const fn = kind==='up' ? cloud.sb.auth.signUp({email,password}) : cloud.sb.auth.signInWithPassword({email,password});
+  const fn = kind==='up' ? cloud.sb.auth.signUp({email,password,options:{emailRedirectTo: location.origin+location.pathname}}) : cloud.sb.auth.signInWithPassword({email,password});
   const {data, error} = await fn;
   if(error) return toast(error.message.includes('Invalid login')?'Correo o contraseña incorrectos':error.message);
   if(kind==='up' && !data.session) return toast('Te enviamos un correo para confirmar la cuenta. Confírmalo y luego entra.');
