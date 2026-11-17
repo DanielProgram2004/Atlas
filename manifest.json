@@ -1,0 +1,11 @@
+{
+  "name": "Atlas · Asistente personal",
+  "short_name": "Atlas",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8fb",
+  "theme_color": "#066fd1",
+  "lang": "es-CO",
+  "icons": [{"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}]
+}

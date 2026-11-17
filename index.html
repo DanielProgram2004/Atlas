@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atlas · Asistente personal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tabler.min.css">
+<script src="chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<meta name="theme-color" content="#066fd1">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<style>
+:root{
+  --bg:#f6f8fb;--panel:#FFFFFF;--panel2:#f6f8fb;--line:#e6e7e9;--text:#182433;--muted:#6b7a90;
+  --accent:#066fd1;--accent2:#066fd1;--accent-soft:rgba(6,111,209,.08);--green:#2fb344;--red:#d63939;--amber:#f59f00;--blue:#4299e1;--pink:#d6336c;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,system-ui,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.45}
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+/* Sidebar */
+.side{background:var(--panel);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 18px}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--pink));display:grid;place-items:center;font-weight:800}
+.brand b{font-size:17px;letter-spacing:.3px}.brand small{display:block;color:var(--muted);font-size:11px}
+.snav{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:none;border:0;cursor:pointer;color:var(--muted);text-align:left;font-weight:500;transition:.15s}
+.snav:hover{background:var(--panel2);color:var(--text)}
+.snav.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.snav .ic{width:20px;text-align:center}
+.side .foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.side .foot button{background:none;border:1px solid var(--line);border-radius:9px;padding:8px;cursor:pointer;color:var(--muted);font-size:12px}
+.side .foot button:hover{color:var(--text);border-color:#333a4d}
+/* Main */
+main{padding:26px 32px 60px;max-width:1400px;width:100%}
+.top{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;gap:12px;flex-wrap:wrap}
+.top h1{font-size:24px;font-weight:700}.top p{color:var(--muted)}
+.clock{text-align:right}.clock b{font-size:22px;font-weight:700;display:block}.clock span{color:var(--muted);font-size:12px;text-transform:capitalize}
+.view{display:none}.view.active{display:block;animation:fade .25s}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g2{grid-template-columns:repeat(2,1fr)}
+.g21{grid-template-columns:2fr 1fr}.g12{grid-template-columns:1fr 2fr}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.card h3{font-size:14px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.card h3 small{color:var(--muted);font-weight:500}
+.kpi .lbl{color:var(--muted);font-size:12px;font-weight:500}
+.kpi .val{font-size:24px;font-weight:700;margin:4px 0 8px}
+.kpi .sub{color:var(--muted);font-size:12px}
+.bar{height:7px;background:var(--panel2);border-radius:9px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:9px;background:var(--accent);transition:width .4s}
+.mt{margin-top:16px}.mb{margin-bottom:16px}
+/* Forms */
+form.frow{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+.f{display:flex;flex-direction:column;gap:4px;flex:1;min-width:110px}
+.f label{font-size:11px;color:var(--muted);font-weight:500}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:6px 11px;font-size:12px;cursor:pointer}
+.chip:hover{border-color:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+/* Tables */
+.scroll{max-height:360px;overflow:auto}
+.x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:15px;padding:0 4px}.x:hover{color:var(--red)}
+.pos{color:var(--green)}.neg{color:var(--red)}.muted{color:var(--muted)}
+.tag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--panel2);border:1px solid var(--line)}
+.empty{color:var(--muted);text-align:center;padding:22px;font-size:13px}
+/* Agenda list */
+.ag{display:flex;flex-direction:column;gap:8px}
+.ag .it{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;background:var(--panel2);border-left:3px solid var(--accent)}
+.ag .it.now{outline:1.5px solid var(--accent);background:var(--accent-soft)}
+.ag .it .t{font-size:12px;color:var(--muted);min-width:92px;font-variant-numeric:tabular-nums}
+/* Insights */
+.ins{display:flex;flex-direction:column;gap:8px}
+.ins div{padding:10px 12px;border-radius:10px;background:var(--panel2);display:flex;gap:10px;font-size:13px}
+.ins .warn{border-left:3px solid var(--amber)}.ins .bad{border-left:3px solid var(--red)}.ins .ok{border-left:3px solid var(--green)}.ins .info{border-left:3px solid var(--blue)}
+/* Timeline */
+.tl{display:grid;grid-template-columns:48px repeat(7,1fr);border:1px solid var(--line);border-radius:12px;overflow:auto;background:var(--panel)}
+.tl .hd{position:sticky;top:0;background:var(--panel2);padding:10px 6px;text-align:center;font-weight:600;font-size:12px;border-bottom:1px solid var(--line);z-index:2}
+.tl .hd.today{color:var(--accent2)}
+.tl .hours,.tl .col{position:relative;border-left:1px solid var(--line)}
+.tl .hours{border-left:0}
+.tl .hours span{position:absolute;right:6px;font-size:10px;color:var(--muted);transform:translateY(-6px)}
+.tl .col .ln{position:absolute;left:0;right:0;border-top:1px dashed #1c2130}
+.blk{position:absolute;left:4px;right:4px;border-radius:8px;padding:5px 7px;font-size:11px;overflow:hidden;cursor:default;border-left:3px solid;z-index:1}
+.blk b{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk .x{position:absolute;top:2px;right:2px;font-size:12px;color:#fff;opacity:0}
+.blk:hover .x{opacity:.8}
+.nowline{position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:3}
+/* Chat */
+.chat{display:flex;flex-direction:column;height:calc(100vh - 170px);min-height:420px}
+.msgs{flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding:4px 2px 14px}
+.msg{max-width:78%;padding:10px 14px;border-radius:14px;white-space:pre-wrap;font-size:13.5px}
+.msg.u{align-self:flex-end;background:var(--accent);border-bottom-right-radius:4px}
+.msg.a{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+.chatbox{display:flex;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.tst{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--panel2);border:1px solid var(--line);padding:10px 18px;border-radius:10px;transition:.3s;z-index:99}
+.tst.show{transform:translateX(-50%) translateY(0)}
+canvas{max-width:100%}
+.ring{display:flex;gap:16px;align-items:center}
+.macro{flex:1}.macro .lbl{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+.days7{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.days7 .f input{font-size:12px}
+.exgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.excard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;transition:.15s}
+.excard:hover{border-color:var(--accent);transform:translateY(-2px)}
+.excard img{width:100%;height:135px;object-fit:cover;background:#fff;display:block}
+.excard .b{padding:10px 12px}.excard .b b{display:block;font-size:13px;margin-bottom:6px;line-height:1.3}
+.mdl{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;place-items:center;z-index:80;padding:20px;backdrop-filter:blur(3px)}
+.mdl.open{display:grid}
+.mdl .box{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:780px;width:100%;max-height:90vh;overflow:auto;padding:22px}
+.mdl .imgs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.mdl .imgs img{width:100%;height:240px;object-fit:contain;background:#fff;border-radius:10px}
+.mdl ol{padding-left:20px;display:flex;flex-direction:column;gap:6px;color:#cdd2dd}
+.timer{font-size:46px;font-weight:800;font-variant-numeric:tabular-nums;text-align:center;margin:6px 0 10px;letter-spacing:1px}
+.timer.run{color:var(--green)}
+.hgrid td.c,.hgrid th.c{text-align:center;padding:6px 3px}
+.dot{display:inline-block;width:20px;height:20px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);cursor:pointer;transition:.15s}
+.dot:hover{border-color:var(--green)}
+.dot.on{background:var(--green);border-color:var(--green)}
+.status{display:inline-block;width:8px;height:8px;border-radius:50%;background:#475569;margin-right:6px}
+.status.on{background:var(--green)}
+.typing{opacity:.65;font-style:italic}
+.food-res{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:10px;background:var(--panel2);margin-bottom:6px}
+.food-res .im{width:42px;height:42px;border-radius:8px;background:#fff;object-fit:cover;flex:none;display:grid;place-items:center;font-size:20px}
+.food-res .grow{flex:1;min-width:0}.food-res .grow b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}.g3,.g21,.g12{grid-template-columns:1fr}.days7{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{position:fixed;bottom:0;top:auto;left:0;right:0;height:auto;flex-direction:row;padding:6px;z-index:50;border-right:0;border-top:1px solid var(--line);overflow-x:auto}
+  .brand,.side .foot{display:none}
+  .snav{flex-direction:column;gap:2px;font-size:10px;padding:6px 8px;flex:1;min-width:56px}
+  main{padding:18px 14px 90px}
+  .g2{grid-template-columns:1fr}
+  .tl{grid-template-columns:40px repeat(7,minmax(90px,1fr))}
+}
+
+/* ====== Identidad visual: claro, tinta azul ====== */
+body{background:var(--bg);-webkit-font-smoothing:antialiased;font-feature-settings:"tnum" 1}
+.side{background:#F8F9FA}
+.logo{background:var(--text);color:#fff;border-radius:8px;font-weight:700}
+.snav{color:var(--muted)}.snav:hover{background:#EEF1F4;color:var(--text)}
+.snav .ic{display:grid;place-items:center}.ti{display:block}
+.side .foot button{display:flex;align-items:center;gap:8px;justify-content:center;background:#fff}
+.side .foot .ti{width:15px;height:15px}
+.top h1{font-size:30px;letter-spacing:-.02em;font-weight:700}
+.card{box-shadow:none}
+.card h3{font-size:15px;letter-spacing:-.01em}
+.kpi .val{font-size:26px;letter-spacing:-.02em}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ins > div > span:first-child{display:none}
+.ins div{background:var(--panel2);border-radius:8px}
+.tl .col .ln{border-top:1px dashed #E3E7EC}
+.tl .hd{background:#F8F9FA}
+.blk{color:var(--text)}.blk b{color:var(--text)}.blk .x{color:var(--text)}
+.msg.u{background:var(--accent);color:#fff}
+.msg.a{background:var(--panel2)}
+.tst{background:var(--text);color:#fff;border:0}
+.tag{background:#fff}
+.excard img,.mdl .imgs img{background:#fff;border-bottom:1px solid var(--line)}
+.excard:hover{transform:none}
+.dot{background:#fff}
+.timer.run{color:var(--accent)}
+.food-res{background:var(--panel2)}
+.mdl .box{box-shadow:0 20px 60px rgba(24,33,47,.18)}
+.mdl ol{color:var(--text)}
+/* Franja del día */
+.daystrip{display:grid;grid-template-columns:auto 1fr;gap:34px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:22px 26px}
+.daystrip .day{line-height:1}
+.daystrip .day .wd{font-size:15px;color:var(--muted);font-weight:500;text-transform:capitalize}
+.daystrip .day .dn{font-size:64px;font-weight:800;letter-spacing:-.04em;margin:4px 0 2px}
+.daystrip .day .mo{font-size:15px;font-weight:600;text-transform:capitalize}
+.track{position:relative;height:58px;border-radius:8px;background:repeating-linear-gradient(90deg,var(--panel2) 0 calc(100%/17 - 1px),var(--line) calc(100%/17 - 1px) calc(100%/17));}
+.track .seg{position:absolute;top:8px;bottom:8px;border-radius:6px;padding:6px 8px;font-size:12px;font-weight:600;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.track .seg.past{opacity:.35}
+.track .nowm{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--text)}
+.track .nowm::before{content:'';position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--text)}
+.ticks{position:relative;height:18px;margin-top:6px;font-size:11px;color:var(--muted)}
+.ticks span{position:absolute;transform:translateX(-50%)}.ticks span:first-child{transform:none}
+.daystrip .line{margin-top:12px;font-size:14px;color:var(--muted)}
+.daystrip .line b{color:var(--text)}
+@media(max-width:860px){.kpi .val{font-size:20px}.daystrip{grid-template-columns:1fr;gap:16px}.daystrip .day .dn{font-size:48px}.side{background:#fff}.snav.active{background:var(--accent-soft)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ====== Ajustes sobre Tabler ====== */
+.card{padding:20px;border-radius:var(--tblr-border-radius-lg,8px)}
+.card h3.card-title{font-size:15px;font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card h3.card-title small{color:var(--muted);font-weight:400;font-size:12.5px}
+.f label{font-size:12.5px;font-weight:500;color:var(--text)}
+form.frow{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.form-control,.form-select{width:100%}
+.btn{white-space:nowrap}
+.tbl td,.tbl th{padding:.6rem .5rem}
+.table{margin-bottom:0}
+.tag{font-weight:500}
+.snav{font-size:14px}
+.side{background:#fff}
+.sync{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);padding:6px 8px}
+.sync i{width:8px;height:8px;border-radius:50%;background:#cbd5e1;flex:none}
+.sync.on i{background:var(--green)}.sync.warn i{background:var(--amber)}.sync.err i{background:var(--red)}
+.exhead{display:flex;align-items:center;gap:6px;padding:12px 12px 0;font-size:12px;font-weight:600;color:var(--c)}.exhead::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--c)}.excard{border-top:3px solid var(--line)}
+.lock{position:fixed;inset:0;background:var(--bg);display:none;place-items:center;z-index:200;padding:20px}
+.lock.open{display:grid}
+.lockbox{background:#fff;border:1px solid var(--line);border-radius:12px;padding:28px;width:100%;max-width:340px;text-align:center}
+.lockbox h2{font-size:20px;margin-bottom:4px}
+.chatbox .btn-icon{padding:0 10px}
+.msg.a{border:1px solid var(--line)}
+.stack{display:flex;flex-direction:column;gap:12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}@media(max-width:600px){.pair{grid-template-columns:1fr}}
+.tst{opacity:0;pointer-events:none}.tst.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand"><div class="logo">A</div><div><b>Atlas</b><small>Asistente personal</small></div></div>
+    <button class="snav active" data-view="inicio"><span class="ic"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M5 12l-2 0l9 -9l9 9l-2 0" /> <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" /> <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" /> </svg></span>Inicio</button>
+    <button class="snav" data-view="asistente"><span class="ic"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12" /> <path d="M9.5 9h.01" /> <path d="M14.5 9h.01" /> <path d="M9.5 13a3.5 3.5 0 0 0 5 0" /> </svg></span>Asistente</button>
+    <button class="snav" data-view="horario"><span class="ic"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" /> <path d="M16 3v4" /> <path d="M8 3v4" /> <path d="M4 11h16" /> <path d="M7 14h.013" /> <path d="M10.01 14h.005" /> <path d="M13.01 14h.005" /> <path d="M16.015 14h.005" /> <path d="M13.015 17h.005" /> <path d="M7.01 17h.005" /> <path d="M10.01 17h.005" /> </svg></span>Horario</button>
+    <button class="snav" data-view="finanzas"><span class="ic"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M17 8v-3a1 1 0 0 0 -1 -1h-10a2 2 0 0 0 0 4h12a1 1 0 0 1 1 1v3m0 4v3a1 1 0 0 1 -1 1h-12a2 2 0 0 1 -2 -2v-12" /> <path d="M20 12v4h-4a2 2 0 0 1 0 -4h4" /> </svg></span>Finanzas</button>
+    <button class="snav" data-view="gym"><span class="ic"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M2 12h1" /> <path d="M6 8h-2a1 1 0 0 0 -1 1v6a1 1 0 0 0 1 1h2" /> <path d="M6 7v10a1 1 0 0 0 1 1h1a1 1 0 0 0 1 -1v-10a1 1 0 0 0 -1 -1h-1a1 1 0 0 0 -1 1" /> <path d="M9 12h6" /> <path d="M15 7v10a1 1 0 0 0 1 1h1a1 1 0 0 0 1 -1v-10a1 1 0 0 0 -1 -1h-1a1 1 0 0 0 -1 1" /> <path d="M18 8h2a1 1 0 0 1 1 1v6a1 1 0 0 1 -1 1h-2" /> <path d="M22 12h-1" /> </svg></span>Gym</button>
+    <button class="snav" data-view="nutricion"><span class="ic"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M4 11h16a1 1 0 0 1 1 1v.5c0 1.5 -2.517 5.573 -4 6.5v1a1 1 0 0 1 -1 1h-8a1 1 0 0 1 -1 -1v-1c-1.687 -1.054 -4 -5 -4 -6.5v-.5a1 1 0 0 1 1 -1" /> <path d="M18.5 11c.351 -1.017 .426 -2.236 .5 -3.714v-1.286h-2.256c-2.83 0 -4.616 .804 -5.64 2.076" /> <path d="M5.255 11.008a12.204 12.204 0 0 1 -.255 -2.008v-1h1.755c.98 0 1.801 .124 2.479 .35" /> <path d="M8 8l1 -4l4 2.5" /> <path d="M13 11v-.5a2.5 2.5 0 1 0 -5 0v.5" /> </svg></span>Nutrición</button>
+    <button class="snav" data-view="sueno"><span class="ic"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454l0 .008" /> </svg></span>Sueño</button>
+    <button class="snav" data-view="habitos"><span class="ic"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M9.615 20h-2.615a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8" /> <path d="M14 19l2 2l4 -4" /> <path d="M9 8h4" /> <path d="M9 12h2" /> </svg></span>Hábitos</button>
+    <button class="snav" data-view="ajustes"><span class="ic"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065" /> <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /> </svg></span>Ajustes</button>
+    <div class="foot">
+      <div class="sync" id="syncState"><i></i><span>Conectando…</span></div>
+      <button id="btnExport"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /> <path d="M7 11l5 5l5 -5" /> <path d="M12 4l0 12" /> </svg> Exportar respaldo</button>
+      <button id="btnImport"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ti" aria-hidden="true" >  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /> <path d="M7 9l5 -5l5 5" /> <path d="M12 4l0 12" /> </svg> Importar respaldo</button>
+      <input type="file" id="fileImport" accept=".json" hidden>
+    </div>
+  </aside>
+
+  <main>
+    <header class="top">
+      <div><h1 id="title">Inicio</h1><p id="subtitle"></p></div>
+      <div class="clock"><b id="clockTime"></b><span id="clockDate"></span></div>
+    </header>
+
+    <!-- INICIO -->
+    <section class="view active" id="v-inicio">
+      <div class="daystrip" id="dayStrip"></div>
+      <div class="grid g4 mt" id="kpis"></div>
+      <div class="grid g21 mt">
+        <div class="card"><h3 class="card-title">Agenda de hoy <small id="agDay"></small></h3><div class="ag" id="agToday"></div></div>
+        <div class="card"><h3 class="card-title">Recomendaciones</h3><div class="ins" id="insights"></div></div>
+      </div>
+      <div class="grid g3 mt">
+        <div class="card"><h3 class="card-title">Gastos — últimos 14 días</h3><canvas id="chDashSpend" height="170"></canvas></div>
+        <div class="card"><h3 class="card-title">Sueño — últimos 14 días</h3><canvas id="chDashSleep" height="170"></canvas></div>
+        <div class="card"><h3 class="card-title">Peso corporal</h3><canvas id="chDashWeight" height="170"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ASISTENTE -->
+    <section class="view" id="v-asistente">
+      <div class="card chat">
+        <div class="msgs" id="msgs"></div>
+        <div class="chips mb" id="quick"></div>
+        <form class="chatbox" id="chatForm">
+          <input class="form-control" id="chatIn" placeholder='Ej: "gasté 25 mil en almuerzo", "dormí 7.5h", "press banca 4x8 60kg", "comí pechuga", "peso 72.4"' autocomplete="off">
+          <button type="button" class="btn btn-icon" id="micBtn" hidden title="Dictar por voz" aria-label="Dictar por voz"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2m0 3a3 3 0 0 1 3 -3h0a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3h0a3 3 0 0 1 -3 -3z"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8 21l8 0"/><path d="M12 17l0 4"/></svg></button>
+          <button class="btn btn-primary">Enviar</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- HORARIO -->
+    <section class="view" id="v-horario">
+      <div class="card mb">
+        <h3 class="card-title">Agregar bloque</h3>
+        <form class="frow" id="fSched">
+          <div class="f"><label>Título</label><input class="form-control" name="title" required placeholder="Ej: Audiencia, Gym, Estudio"></div>
+          <div class="f"><label>Días</label><select class="form-select" name="day" required>
+            <option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option><option value="6">Sábado</option><option value="0">Domingo</option>
+            <option value="lv">Lunes a viernes</option><option value="all">Todos los días</option></select></div>
+          <div class="f" style="max-width:120px"><label>Inicio</label><input class="form-control" type="time" name="start" required value="08:00"></div>
+          <div class="f" style="max-width:120px"><label>Fin</label><input class="form-control" type="time" name="end" required value="09:00"></div>
+          <div class="f"><label>Categoría</label><select class="form-select" name="cat" id="schedCat"></select></div>
+          <button class="btn btn-primary">Agregar</button>
+        </form>
+      </div>
+      <div class="tl" id="timeline"></div>
+      <div class="grid g4 mt" id="schedStats"></div>
+    </section>
+
+    <!-- FINANZAS -->
+    <section class="view" id="v-finanzas">
+      <div class="grid g4 mb" id="finKpis"></div>
+      <div class="card mb">
+        <h3 class="card-title">Registrar movimiento</h3>
+        <form class="frow" id="fTx">
+          <div class="f" style="max-width:130px"><label>Tipo</label><select class="form-select" name="type" id="txType"><option value="gasto">Gasto</option><option value="ingreso">Ingreso</option></select></div>
+          <div class="f"><label>Monto (COP)</label><input class="form-control" name="amount" type="number" min="1" step="1" required placeholder="25000"></div>
+          <div class="f"><label>Categoría</label><select class="form-select" name="cat" id="txCat"></select></div>
+          <div class="f" style="max-width:160px"><label>Fecha</label><input class="form-control" type="date" name="date" required></div>
+          <div class="f"><label>Nota</label><input class="form-control" name="note" placeholder="Opcional"></div>
+          <button class="btn btn-primary">Guardar</button>
+        </form>
+      </div>
+      <div class="grid g12">
+        <div class="card">
+          <h3 class="card-title">Por categoría <small id="finMonthLbl"></small></h3>
+          <canvas id="chCat" height="230"></canvas>
+          <div class="mt">
+            <form class="frow" id="fBudget">
+              <div class="f"><label>Presupuesto mensual de gastos</label><input class="form-control" type="number" name="budget" min="0" step="1000"></div>
+              <button class="btn">Actualizar</button>
+            </form>
+          </div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Movimientos <select class="form-select" id="finMonth" style="width:auto;padding:5px 8px;font-size:12px"></select></h3>
+          <div class="scroll"><table class="table table-vcenter tbl" id="txTable"></table></div>
+        </div>
+      </div>
+      <div class="card mt"><h3 class="card-title">Ingresos vs gastos — últimos 6 meses</h3><canvas id="chMonths" height="90"></canvas></div>
+    </section>
+
+    <!-- GYM -->
+    <section class="view" id="v-gym">
+      <div class="grid g4 mb" id="gymKpis"></div>
+      <div class="card mb">
+        <h3 class="card-title">Rutina semanal <small>se guarda automáticamente</small></h3>
+        <div class="days7" id="routine"></div>
+      </div>
+      <div class="grid g2">
+        <div class="card">
+          <h3 class="card-title">Registrar ejercicio</h3>
+          <form class="frow" id="fWork">
+            <div class="f" style="min-width:180px"><label>Ejercicio</label><input class="form-control" name="ex" list="exList" required placeholder="Press banca"></div>
+            <div class="f" style="max-width:80px"><label>Series</label><input class="form-control" name="sets" type="number" min="1" value="4" required></div>
+            <div class="f" style="max-width:80px"><label>Reps</label><input class="form-control" name="reps" type="number" min="1" value="8" required></div>
+            <div class="f" style="max-width:100px"><label>Kg</label><input class="form-control" name="kg" type="number" min="0" step="0.5" required></div>
+            <div class="f" style="max-width:150px"><label>Fecha</label><input class="form-control" name="date" type="date" required></div>
+            <button class="btn btn-primary">Guardar</button>
+          </form>
+          <datalist id="exList"></datalist>
+          <div class="scroll mt"><table class="table table-vcenter tbl" id="workTable"></table></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Récords personales (PR)</h3>
+          <div class="scroll"><table class="table table-vcenter tbl" id="prTable"></table></div>
+          <h3 class="card-title mt">Progresión <select class="form-select" id="exSel" style="width:auto;padding:5px 8px;font-size:12px"></select></h3>
+          <canvas id="chEx" height="150"></canvas>
+        </div>
+      </div>
+      <div class="grid g21 mt">
+        <div class="card">
+          <h3 class="card-title">Biblioteca de ejercicios <small id="exCount">free-exercise-db</small></h3>
+          <form class="frow mb" onsubmit="return false">
+            <div class="f" style="min-width:180px"><label>Buscar (nombre en inglés)</label><input class="form-control" id="exQ" placeholder="bench press, squat, curl…"></div>
+            <div class="f"><label>Músculo</label><select class="form-select" id="exMuscle"></select></div>
+            <div class="f"><label>Equipo</label><select class="form-select" id="exEquip"></select></div>
+            <div class="f"><label>Nivel</label><select class="form-select" id="exLevel"><option value="">Todos</option><option value="beginner">Principiante</option><option value="intermediate">Intermedio</option><option value="expert">Avanzado</option></select></div>
+          </form>
+          <div class="chips mb" id="exQuick"></div>
+          <div class="exgrid" id="exGrid"><div class="empty">Cargando biblioteca…</div></div>
+          <div style="text-align:center" class="mt"><button class="btn" id="exMore" hidden>Ver más</button></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Descanso entre series</h3>
+          <div class="timer" id="timer">01:30</div>
+          <div class="chips" style="justify-content:center">
+            <span class="chip" data-tset="60">1:00</span><span class="chip on" data-tset="90">1:30</span><span class="chip" data-tset="120">2:00</span><span class="chip" data-tset="180">3:00</span>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:center" class="mt"><button class="btn btn-primary" id="tStart">Iniciar</button><button class="btn" id="tReset">Reiniciar</button></div>
+          <div class="ins mt">
+            <div class="info"><span>📐</span><span>Hipertrofia: 10–20 series por músculo a la semana, 6–12 repeticiones, dejando 1–3 reps en reserva.</span></div>
+            <div class="info"><span>📈</span><span>Progresión: cuando completes todas las series en el tope de reps, sube 2.5–5 kg.</span></div>
+            <div class="info"><span>⏱</span><span>Descanso: 2–3 min en básicos (sentadilla, banca, peso muerto) y 60–90 s en aislamiento.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="card mt">
+        <h3 class="card-title">Peso corporal</h3>
+        <form class="frow mb" id="fWeight">
+          <div class="f" style="max-width:140px"><label>Peso (kg)</label><input class="form-control" name="kg" type="number" step="0.1" min="20" required></div>
+          <div class="f" style="max-width:160px"><label>Fecha</label><input class="form-control" name="date" type="date" required></div>
+          <button class="btn btn-primary">Registrar</button>
+        </form>
+        <canvas id="chWeight" height="80"></canvas>
+      </div>
+    </section>
+
+    <!-- NUTRICIÓN -->
+    <section class="view" id="v-nutricion">
+      <div class="grid g12">
+        <div class="card">
+          <h3 class="card-title">Tu perfil (volumen)</h3>
+          <form class="grid g2" id="fProfile" style="gap:10px">
+            <div class="f"><label>Peso actual (kg)</label><input class="form-control" name="weight" type="number" step="0.1" required></div>
+            <div class="f"><label>Meta (kg)</label><input class="form-control" name="goal" type="number" step="0.1" required></div>
+            <div class="f"><label>Estatura (cm)</label><input class="form-control" name="height" type="number" required></div>
+            <div class="f"><label>Edad</label><input class="form-control" name="age" type="number" required></div>
+            <div class="f"><label>Sexo</label><select class="form-select" name="sex"><option value="m">Hombre</option><option value="f">Mujer</option></select></div>
+            <div class="f"><label>Actividad</label><select class="form-select" name="activity">
+              <option value="1.375">Ligera (1-3 días)</option><option value="1.55">Moderada (3-5 días)</option><option value="1.725">Alta (6-7 días)</option><option value="1.9">Muy alta</option></select></div>
+            <div class="f"><label>Superávit diario (kcal)</label><input class="form-control" name="surplus" type="number" step="50" required></div>
+            <div class="f" style="justify-content:flex-end"><button class="btn btn-primary">Calcular</button></div>
+          </form>
+          <div class="ins mt" id="targetsBox"></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Hoy <small id="nutDate"></small></h3>
+          <div id="macros"></div>
+          <form class="frow mt" id="fMeal">
+            <div class="f" style="min-width:160px"><label>Comida</label><input class="form-control" name="name" required placeholder="Almuerzo"></div>
+            <div class="f" style="max-width:90px"><label>Kcal</label><input class="form-control" name="kcal" type="number" min="0" required></div>
+            <div class="f" style="max-width:80px"><label>Prot g</label><input class="form-control" name="p" type="number" min="0" step="0.1" value="0"></div>
+            <div class="f" style="max-width:80px"><label>Carb g</label><input class="form-control" name="c" type="number" min="0" step="0.1" value="0"></div>
+            <div class="f" style="max-width:80px"><label>Grasa g</label><input class="form-control" name="fat" type="number" min="0" step="0.1" value="0"></div>
+            <button class="btn btn-primary">Agregar</button>
+          </form>
+          <p class="muted mt" style="font-size:12px;margin-bottom:6px">Agregar rápido:</p>
+          <div class="chips" id="presets"></div>
+          <div class="scroll mt"><table class="table table-vcenter tbl" id="mealTable"></table></div>
+        </div>
+      </div>
+      <div class="card mt">
+        <h3 class="card-title">Buscar alimento <small>Base local y Open Food Facts</small></h3>
+        <form class="frow mb" id="fFood">
+          <div class="f" style="min-width:240px"><label>Alimento, marca o código de barras</label><input class="form-control" id="foodQ" required placeholder="pollo, avena, arroz diana, código de barras…"></div>
+          <div class="f" style="max-width:120px"><label>Porción (g)</label><input class="form-control" id="foodG" type="number" value="100" min="1"></div>
+          <button class="btn btn-primary">Buscar</button>
+        </form>
+        <div id="foodRes"><div class="empty">Busca un alimento para ver sus calorías y macros, y agrégalo a tu día.</div></div>
+      </div>
+    </section>
+
+    <!-- SUEÑO -->
+    <section class="view" id="v-sueno">
+      <div class="grid g4 mb" id="sleepKpis"></div>
+      <div class="grid g12">
+        <div class="card">
+          <h3 class="card-title">Registrar noche</h3>
+          <form class="grid g2" id="fSleep" style="gap:10px">
+            <div class="f"><label>Fecha (al despertar)</label><input class="form-control" name="date" type="date" required></div>
+            <div class="f"><label>Calidad</label><select class="form-select" name="q"><option value="5">5 · Excelente</option><option value="4" selected>4 · Buena</option><option value="3">3 · Normal</option><option value="2">2 · Mala</option><option value="1">1 · Pésima</option></select></div>
+            <div class="f"><label>Me acosté</label><input class="form-control" name="bed" type="time" required value="23:00"></div>
+            <div class="f"><label>Me desperté</label><input class="form-control" name="wake" type="time" required value="06:30"></div>
+            <div class="f"><label>Meta de horas</label><input class="form-control" name="goal" type="number" step="0.5" min="4" max="12"></div>
+            <div class="f" style="justify-content:flex-end"><button class="btn btn-primary">Guardar</button></div>
+          </form>
+          <div class="ins mt" id="sleepTips"></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">Horas dormidas — últimos 21 días</h3>
+          <canvas id="chSleep" height="120"></canvas>
+          <div class="scroll mt"><table class="table table-vcenter tbl" id="sleepTable"></table></div>
+        </div>
+      </div>
+    </section>
+    <!-- HÁBITOS -->
+    <section class="view" id="v-habitos">
+      <div class="grid g4 mb" id="habKpis"></div>
+      <div class="card mb">
+        <h3 class="card-title">Nuevo hábito</h3>
+        <form class="frow" id="fHabit">
+          <div class="f"><label>Hábito</label><input class="form-control" name="name" required placeholder="Ej: Tomar 3 L de agua"></div>
+          <button class="btn btn-primary">Agregar</button>
+        </form>
+      </div>
+      <div class="card"><h3 class="card-title">Últimos 14 días <small>haz clic para marcar</small></h3><div style="overflow-x:auto"><table class="table table-vcenter tbl hgrid" id="habTable"></table></div></div>
+    </section>
+
+    <!-- AJUSTES -->
+    <section class="view" id="v-ajustes">
+      <div class="grid g2">
+        <div class="card">
+          <h3 class="card-title">Cuenta y sincronización</h3>
+          <div class="ins mb" id="secStatus"></div>
+          <form id="fAuth" class="stack">
+            <div class="f"><label>Correo</label><input class="form-control" name="email" type="email" autocomplete="username"></div>
+            <div class="f"><label>Contraseña (mínimo 8)</label><input class="form-control" name="password" type="password" autocomplete="current-password"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" data-auth="in">Entrar</button><button type="button" class="btn" data-auth="up">Crear cuenta</button><button type="button" class="btn" id="btnLogout">Cerrar sesión</button></div>
+          </form>
+          <details class="mt"><summary class="muted" style="cursor:pointer;font-size:13px">Conexión con Supabase</summary>
+            <form id="fSb" class="stack mt">
+              <div class="f"><label>Project URL</label><input class="form-control" name="sbUrl" placeholder="https://xxxx.supabase.co"></div>
+              <div class="f"><label>Anon public key</label><input class="form-control" name="sbKey" placeholder="eyJ…"></div>
+              <div><button class="btn">Guardar conexión</button></div>
+            </form>
+          </details>
+          <h3 class="card-title mt">Bloqueo con PIN</h3>
+          <form class="frow" id="fPin">
+            <div class="f"><label>PIN (4 a 8 números)</label><input class="form-control" name="pin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" autocomplete="new-password" placeholder="••••"></div>
+            <button class="btn btn-primary">Guardar PIN</button>
+            <button type="button" class="btn" id="pinOff">Quitar PIN</button>
+          </form>
+          <p class="muted mt" style="font-size:12.5px">El PIN pide clave al abrir y tras 5 minutos fuera de la app. Tus datos en la nube solo los puede leer tu cuenta.</p>
+          <h3 class="card-title mt">Asistente con IA (Ollama)</h3>
+          <form id="fAI" class="stack">
+            <div class="pair">
+              <div class="f"><label>Dirección de Ollama</label><input class="form-control" name="ollamaUrl"></div>
+              <div class="f"><label>Modelo</label><select class="form-select" name="ollamaModel"><option value="">— elige —</option></select></div>
+            </div>
+            <div class="f"><label>Usar la IA en el chat</label><select class="form-select" name="mode"><option value="auto">Solo cuando el modo local no entienda (recomendado)</option><option value="always">Siempre</option><option value="off">Nunca</option></select></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary">Guardar</button><button type="button" class="btn" id="aiTest">Buscar modelos y probar</button></div>
+          </form>
+          <div class="ins mt" id="aiStatus"></div>
+        </div>
+        <div class="card">
+          <h3 class="card-title">General</h3>
+          <form class="frow" id="fGeneral">
+            <div class="f"><label>Tu nombre</label><input class="form-control" name="name"></div>
+            <button class="btn">Guardar</button>
+          </form>
+          <h3 class="card-title mt">Tus datos</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn" id="btnExport2">Exportar respaldo</button>
+            <button class="btn" id="btnImport2">Importar respaldo</button>
+            <button class="btn" id="btnReset" style="color:var(--red)">Borrar todo</button>
+          </div>
+          <div class="ins mt">
+            <div class="info"><span></span><span>Exporta un respaldo de vez en cuando. El respaldo no incluye tu PIN.</span></div>
+            
+          </div>
+          <h3 class="card-title mt">Fuentes de código abierto</h3>
+          <div class="ins">
+            <div class="ok"><span>⚡</span><span><b>free-exercise-db</b> (GitHub, dominio público): 876 ejercicios con músculos e instrucciones.</span></div>
+            <div class="ok"><span></span><span><b>Tabler</b> (MIT, GitHub): tema visual del dashboard.</span></div>
+            <div class="ok"><span>📊</span><span><b>Chart.js</b> (MIT): gráficas, incluido en el archivo. <b>Tabler Icons</b> (MIT): íconos.</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="tst" id="toast"></div>
+<div class="lock" id="lock"><form class="lockbox" id="fLock">
+  <div class="logo" style="margin:0 auto 14px;width:44px;height:44px;font-size:20px">A</div>
+  <h2>Atlas está bloqueado</h2><p class="muted">Ingresa tu PIN para continuar.</p>
+  <input class="form-control" id="pinIn" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" style="text-align:center;font-size:20px;letter-spacing:6px">
+  <button class="btn btn-primary w-100 mt">Desbloquear</button><p id="lockMsg" class="mt" style="color:var(--red);min-height:20px"></p>
+</form></div>
+<div class="mdl" id="modal"><div class="box" id="modalBox"></div></div>
+
+<script>
+'use strict';
+/* ================== ESTADO ================== */
+const KEY = 'atlas_v1';
+const DEFAULTS = {
+  schedule: [], tx: [], budget: 2000000, workouts: [], weights: [], meals: [], sleep: [], chat: [],
+  routine: {1:'Pecho y tríceps',2:'Espalda y bíceps',3:'Pierna',4:'Hombro y abdomen',5:'Full body',6:'Cardio / movilidad',0:'Descanso'},
+  profile: {weight:70, goal:76, height:175, age:25, sex:'m', activity:1.55, surplus:350},
+  sleepGoal: 8, name: 'Daniel',
+  habits: [{id:'h1',icon:'💧',name:'Tomar 3 L de agua'},{id:'h2',icon:'💊',name:'Creatina 5 g'},{id:'h3',icon:'🏋',name:'Entrenar'},{id:'h4',icon:'📖',name:'Leer 20 min'},{id:'h5',icon:'🌙',name:'Dormir antes de las 11 p.m.'}],
+  habitLog: {},
+  ai: {}
+};
+const AI_DEFAULTS = {anthropicKey:'',anthropicModel:'claude-haiku-5-5',openaiKey:'',openaiModel:'gpt-4o-mini',geminiKey:'',geminiModel:'gemini-2.5-flash',order:'anthropic,openai,gemini'};
+let S = load();
+function load(){
+  let s;
+  try{ const raw = JSON.parse(localStorage.getItem(KEY) || 'null'); s = Object.assign(structuredClone(DEFAULTS), raw || {}); }
+  catch(e){ console.error(e); s = structuredClone(DEFAULTS); }
+  s.ai = Object.assign({}, AI_DEFAULTS, s.ai || {});
+  return s;
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} scheduleSync(); }
+
+/* ================== NUBE: Supabase (gratis) ==================
+   Tabla atlas_docs con Row Level Security: cada usuario solo ve y escribe sus filas.
+   localStorage es caché local para usar la app sin conexión. */
+const SHARDED = ['tx','meals','workouts','sleep','weights'];
+const CORE_KEYS = ['budget','routine','profile','sleepGoal','name','habits','habitLog','schedule','pin','aiMode'];
+const CFG_KEY = 'atlas_cfg';
+const cloud = {sb:null, user:null, ready:false, last:{}, timer:null, busy:false, again:false};
+let CFG = (()=>{ try{ return JSON.parse(localStorage.getItem(CFG_KEY)||'{}'); }catch(e){ return {}; } })();
+CFG = Object.assign({sbUrl:'', sbKey:'', ollamaUrl:'http://localhost:11434', ollamaModel:''}, CFG);
+const saveCfg = () => { try{ localStorage.setItem(CFG_KEY, JSON.stringify(CFG)); }catch(e){} };
+const sleepMs = ms => new Promise(r=>setTimeout(r,ms));
+async function withRetry(fn){ try{ return await fn(); }catch(e){ await sleepMs(700+Math.random()*900); return fn(); } }
+function setSync(state, detail){
+  const el = document.getElementById('syncState'); if(!el) return;
+  const map = {connecting:['Conectando…',''], ok:['Sincronizado','on'], saving:['Guardando…',''], local:['Solo en este dispositivo','warn'], error:['Sin conexión: se guardará luego','err'], login:['Inicia sesión para sincronizar','warn']};
+  const [t,c] = map[state]||map.local; el.className = 'sync '+c; el.querySelector('span').textContent = t; el.title = detail||'';
+}
+function docsFromState(){
+  const out = {core:{}, chat:{items:S.chat.slice(-80)}};
+  CORE_KEYS.forEach(k=>{ if(S[k]!==undefined) out.core[k] = S[k]; });
+  SHARDED.forEach(k=>{ const by = {}; (S[k]||[]).forEach(x=>{ const y = String(x.date||'0000').slice(0,4); (by[y] = by[y]||[]).push(x); });
+    Object.entries(by).forEach(([y,items])=>out[k+'_'+y] = {items}); });
+  return out;
+}
+function scheduleSync(){ if(!cloud.ready) return; clearTimeout(cloud.timer); setSync('saving'); cloud.timer = setTimeout(syncNow, 900); }
+async function syncNow(){
+  cloud.timer = null; if(!cloud.ready) return;
+  if(cloud.busy){ cloud.again = true; return; }
+  cloud.busy = true;
+  try{
+    const docs = docsFromState();
+    Object.keys(cloud.last).forEach(k=>{ if(!(k in docs) && SHARDED.some(p=>k.startsWith(p+'_'))) docs[k] = {items:[]}; });
+    const rows = [];
+    for(const [k,v] of Object.entries(docs)){ const j = JSON.stringify(v); if(cloud.last[k]!==j) rows.push({key:k, data:v, updated_at:new Date().toISOString(), _j:j}); }
+    if(rows.length){
+      const {error} = await withRetry(()=>cloud.sb.from('atlas_docs').upsert(rows.map(({_j,...r})=>({...r, user_id:cloud.user.id})), {onConflict:'user_id,key'}));
+      if(error) throw error;
+      rows.forEach(r=>cloud.last[r.key] = r._j);
+    }
+    setSync('ok');
+  }catch(e){ console.error('sync', e); setSync('error', e && e.message); }
+  finally{ cloud.busy = false; if(cloud.again){ cloud.again = false; scheduleSync(); } }
+}
+const hasData = st => SHARDED.some(k=>(st[k]||[]).length) || (st.schedule||[]).length;
+function applyCloud(rows){
+  const fresh = structuredClone(DEFAULTS); SHARDED.forEach(k=>fresh[k] = []); fresh.chat = [];
+  rows.forEach(({key, data})=>{ const v = data||{}; cloud.last[key] = JSON.stringify(v);
+    if(key==='core') CORE_KEYS.forEach(k=>{ if(k in v) fresh[k] = v[k]; });
+    else if(key==='chat') fresh.chat = Array.isArray(v.items)?v.items:[];
+    else { const k = key.split('_')[0]; if(SHARDED.includes(k) && Array.isArray(v.items)) fresh[k].push(...v.items); } });
+  fresh.ai = S.ai; S = fresh;
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+}
+async function pull(){
+  const {data, error} = await withRetry(()=>cloud.sb.from('atlas_docs').select('key,data'));
+  if(error) throw error; return data||[];
+}
+async function startSession(user){
+  cloud.user = user; cloud.last = {};
+  try{
+    const rows = await pull();
+    if(!rows.length){ cloud.ready = true; if(hasData(S)) await syncNow(); else setSync('ok'); }
+    else { applyCloud(rows); cloud.ready = true; setSync('ok'); render(); lockIfNeeded(); }
+  }catch(e){ console.warn(e); setSync('error', e.message); }
+  if(view==='ajustes') render();
+}
+async function initCloud(){
+  if(!CFG.sbUrl || !CFG.sbKey || !window.supabase){ setSync('local'); return; }
+  setSync('connecting');
+  try{
+    cloud.sb = window.supabase.createClient(CFG.sbUrl, CFG.sbKey, {auth:{persistSession:true, autoRefreshToken:true}});
+    const {data:{session}} = await cloud.sb.auth.getSession();
+    if(session?.user) await startSession(session.user); else setSync('login');
+    cloud.sb.auth.onAuthStateChange((ev, sess)=>{ if(ev==='SIGNED_OUT'){ cloud.ready = false; cloud.user = null; setSync('login'); if(view==='ajustes') render(); } });
+  }catch(e){ console.warn('cloud', e); setSync('local', e.message); }
+}
+async function authAction(kind){
+  const f = $('#fAuth'), email = f.email.value.trim(), password = f.password.value;
+  if(!cloud.sb) return toast('Primero guarda la conexión de Supabase');
+  if(!email || password.length<8) return toast('Escribe tu correo y una contraseña de 8 caracteres o más');
+  const fn = kind==='up' ? cloud.sb.auth.signUp({email,password}) : cloud.sb.auth.signInWithPassword({email,password});
+  const {data, error} = await fn;
+  if(error) return toast(error.message.includes('Invalid login')?'Correo o contraseña incorrectos':error.message);
+  if(kind==='up' && !data.session) return toast('Te enviamos un correo para confirmar la cuenta. Confírmalo y luego entra.');
+  f.password.value=''; toast('Sesión iniciada'); await startSession(data.user || data.session.user);
+}
+document.addEventListener('visibilitychange', async ()=>{
+  if(document.visibilityState==='hidden'){ hiddenAt = Date.now(); if(cloud.ready){ clearTimeout(cloud.timer); syncNow(); } return; }
+  if(S.pin?.hash && Date.now()-hiddenAt > 5*60*1000) showLock();
+  if(cloud.ready && !cloud.busy && !cloud.timer){ try{ const rows = await pull(); if(!cloud.busy && rows.length){ applyCloud(rows); render(); } }catch(e){} }
+});
+window.addEventListener('online', ()=>{ if(cloud.ready) scheduleSync(); });
+
+/* ================== PIN DE BLOQUEO ================== */
+let hiddenAt = Date.now(), unlocked = false, pinFails = 0, pinWaitUntil = 0;
+async function sha256(t){ const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+function showLock(){ unlocked = false; $('#lock').classList.add('open'); $('#pinIn').value=''; setTimeout(()=>$('#pinIn').focus(),50); }
+function lockIfNeeded(){ if(S.pin?.hash && !unlocked) showLock(); }
+
+/* ================== UTILIDADES ================== */
+const $ = s => document.querySelector(s);
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+const iso = d => { const x = new Date(d); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); };
+const today = () => iso(new Date());
+const addDays = (s,n) => { const d = new Date(s+'T12:00'); d.setDate(d.getDate()+n); return iso(d); };
+const monthKey = s => s.slice(0,7);
+const money = n => new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(n||0);
+const short = n => Math.abs(n)>=1e6 ? (n/1e6).toFixed(1).replace('.0','')+'M' : Math.abs(n)>=1e3 ? Math.round(n/1e3)+'k' : String(Math.round(n));
+const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+const fmtMin = m => { m = ((m%1440)+1440)%1440; return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); };
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sum = (a,f) => a.reduce((t,x)=>t+(+f(x)||0),0);
+const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const ORDER = [1,2,3,4,5,6,0];
+const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+function toast(t){ const el=$('#toast'); el.textContent=t; el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>el.classList.remove('show'),2200); }
+
+const SCHED_CATS = {Trabajo:'#066fd1',Estudio:'#4299e1',Gym:'#2fb344',Personal:'#d6336c',Comida:'#f59f00',Descanso:'#9ba9be',Negocio:'#d63939'};
+const EXP_CATS = ['Comida','Transporte','Vivienda','Servicios','Gym/Salud','Ocio','Ropa','Educación','Suscripciones','Negocio','Otros'];
+const INC_CATS = ['Salario','Honorarios','Negocio','Inversiones','Otros'];
+const CAT_COLORS = ['#066fd1','#4299e1','#2fb344','#f59f00','#d6336c','#d63939','#ae3ec9','#0ca678','#74b816','#f76707','#9ba9be'];
+const FOODS = [
+  {n:'Huevos x3',k:210,p:18,c:1,f:15},{n:'Pechuga 200g',k:330,p:62,c:0,f:7},{n:'Arroz cocido 200g',k:260,p:5,c:57,f:1},
+  {n:'Avena 80g',k:300,p:10,c:54,f:6},{n:'Batido proteína',k:120,p:24,c:3,f:1.5},{n:'Leche entera 400ml',k:250,p:13,c:19,f:13},
+  {n:'Banano',k:105,p:1,c:27,f:0},{n:'Mantequilla de maní 2 cdas',k:190,p:8,c:6,f:16},{n:'Carne molida 150g',k:330,p:30,c:0,f:23},
+  {n:'Atún lata',k:130,p:28,c:0,f:1},{n:'Pan integral 2 tajadas',k:160,p:8,c:28,f:2},{n:'Papa cocida 300g',k:260,p:6,c:60,f:0},
+  {n:'Aguacate 1/2',k:160,p:2,c:9,f:15},{n:'Yogur griego 200g',k:190,p:18,c:8,f:9},{n:'Arepa mediana',k:220,p:5,c:38,f:5},{n:'Fríjoles 1 taza',k:230,p:15,c:40,f:1}
+];
+// Valores por 100 g (referencia USDA / tablas colombianas aproximadas)
+const LOCAL_FOODS = [
+  ['Pechuga de pollo cocida',165,31,0,3.6],['Muslo de pollo cocido',209,26,0,11],['Carne de res magra cocida',250,26,0,15],['Carne molida cocida',254,24,0,17],
+  ['Lomo de cerdo cocido',143,26,0,3.5],['Tilapia cocida',128,26,0,2.7],['Salmón cocido',208,20,0,13],['Atún en agua',116,26,0,1],
+  ['Huevo entero',143,13,0.7,9.5],['Clara de huevo',52,11,0.7,0.2],['Arroz blanco cocido',130,2.7,28,0.3],['Arroz integral cocido',112,2.3,24,0.8],
+  ['Pasta cocida',158,5.8,31,0.9],['Papa cocida',87,1.9,20,0.1],['Papa criolla cocida',97,2,22,0.1],['Yuca cocida',160,1.4,38,0.3],
+  ['Plátano maduro',122,1.3,32,0.4],['Plátano verde',120,1.3,31,0.4],['Arepa de maíz',200,4,40,3],['Avena en hojuelas',389,17,66,7],
+  ['Pan blanco',265,9,49,3.2],['Pan integral',247,13,41,3.4],['Fríjol rojo cocido',127,8.7,23,0.5],['Lenteja cocida',116,9,20,0.4],
+  ['Garbanzo cocido',164,8.9,27,2.6],['Leche entera',61,3.2,4.8,3.3],['Leche descremada',35,3.4,5,0.1],['Yogur griego natural',97,9,3.9,5],
+  ['Queso campesino',264,18,3,20],['Queso mozzarella',280,28,3,17],['Proteína whey (polvo)',400,80,8,6],['Mantequilla de maní',588,25,20,50],
+  ['Almendras',579,21,22,50],['Maní',567,26,16,49],['Aguacate',160,2,9,15],['Aceite de oliva',884,0,0,100],
+  ['Banano',89,1.1,23,0.3],['Manzana',52,0.3,14,0.2],['Mango',60,0.8,15,0.4],['Fresa',32,0.7,7.7,0.3],['Piña',50,0.5,13,0.1],['Papaya',43,0.5,11,0.3],
+  ['Brócoli',34,2.8,7,0.4],['Espinaca',23,2.9,3.6,0.4],['Tomate',18,0.9,3.9,0.2],['Zanahoria',41,0.9,10,0.2],['Miel',304,0.3,82,0],
+  ['Chocolate amargo 70%',598,7.8,46,43],['Granola',471,10,64,20],['Panela',380,0.4,95,0.1],['Mazorca cocida',96,3.4,21,1.5]
+].map(([n,k,p,c,f])=>({n,k,p,c,f}));
+const norm = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+
+/* ================== CÁLCULOS ================== */
+function targets(){
+  const p = S.profile, w = +p.weight;
+  const bmr = 10*w + 6.25*(+p.height) - 5*(+p.age) + (p.sex==='m' ? 5 : -161);
+  const tdee = bmr * (+p.activity);
+  const kcal = Math.round(tdee + (+p.surplus||0));
+  const prot = Math.round(2*w), fat = Math.round(0.9*w);
+  const carb = Math.max(0, Math.round((kcal - prot*4 - fat*9)/4));
+  return {bmr:Math.round(bmr), tdee:Math.round(tdee), kcal, prot, fat, carb};
+}
+const mealsOn = d => S.meals.filter(m => m.date===d);
+const monthTx = (mk, type) => S.tx.filter(t => monthKey(t.date)===mk && (!type || t.type===type));
+function sleepHours(bed,wake){ let d = toMin(wake)-toMin(bed); if(d<=0) d+=1440; return Math.round(d/6)/10; }
+function sleepAvg(n){ const from = addDays(today(),-n+1); const a = S.sleep.filter(s=>s.date>=from); return a.length ? sum(a,s=>s.hours)/a.length : null; }
+function weightRate(){
+  const w = [...S.weights].sort((a,b)=>a.date.localeCompare(b.date));
+  if(w.length<2) return null;
+  const last = w[w.length-1], from = addDays(last.date,-21);
+  const first = w.find(x=>x.date>=from) || w[0];
+  const days = (new Date(last.date)-new Date(first.date))/864e5;
+  if(days<6) return null;
+  return (last.kg-first.kg)/days*7;
+}
+function blocksOn(dow){ return S.schedule.filter(b=>b.day===dow).sort((a,b)=>a.start.localeCompare(b.start)); }
+
+/* ================== AGENTE: RECOMENDACIONES ================== */
+function insights(){
+  const out = [], now = new Date(), td = today(), mk = monthKey(td);
+  const nowMin = now.getHours()*60+now.getMinutes();
+  // Agenda
+  const next = blocksOn(now.getDay()).find(b => toMin(b.start) > nowMin);
+  const cur = blocksOn(now.getDay()).find(b => toMin(b.start) <= nowMin && toMin(b.end) > nowMin);
+  if(cur) out.push(['info','▦',`Ahora: <b>${esc(cur.title)}</b> hasta las ${cur.end}.`]);
+  if(next) out.push(['info','⏭',`Siguiente: <b>${esc(next.title)}</b> a las ${next.start} (en ${Math.round((toMin(next.start)-nowMin))} min).`]);
+  // Finanzas
+  const spent = sum(monthTx(mk,'gasto'),t=>t.amount);
+  if(S.budget>0){
+    const dim = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
+    const proj = spent/now.getDate()*dim, pct = spent/S.budget*100;
+    if(pct>=100) out.push(['bad','$',`Superaste el presupuesto del mes (${money(spent)} de ${money(S.budget)}).`]);
+    else if(proj > S.budget) out.push(['warn','$',`A este ritmo cerrarás el mes en <b>${money(proj)}</b>, ${money(proj-S.budget)} sobre el presupuesto. Te quedan ${money((S.budget-spent)/(dim-now.getDate()+1))}/día.`]);
+    else out.push(['ok','$',`Finanzas en orden: llevas ${pct.toFixed(0)}% del presupuesto. Disponible: ${money(S.budget-spent)}.`]);
+  }
+  const byCat = {}; monthTx(mk,'gasto').forEach(t=>byCat[t.cat]=(byCat[t.cat]||0)+t.amount);
+  const top = Object.entries(byCat).sort((a,b)=>b[1]-a[1])[0];
+  if(top && spent>0 && top[1]/spent>0.4) out.push(['warn','◔',`<b>${esc(top[0])}</b> es el ${Math.round(top[1]/spent*100)}% de tus gastos del mes. Revisa si puedes recortar ahí.`]);
+  // Nutrición
+  const T = targets(), m = mealsOn(td), p = sum(m,x=>x.p), k = sum(m,x=>x.k);
+  if(p < T.prot){
+    const falta = Math.round(T.prot-p);
+    out.push([now.getHours()>=18 && falta>50 ? 'warn':'info','◐',`Te faltan <b>${falta} g de proteína</b> y ${Math.max(0,T.kcal-Math.round(k))} kcal hoy. Ej: pechuga 200g (62g) o batido + 3 huevos (42g).`]);
+  } else out.push(['ok','◐','Meta de proteína del día cumplida.']);
+  // Gym
+  const r = S.routine[now.getDay()] || '';
+  const trained = S.workouts.some(w=>w.date===td);
+  if(r && !/descanso/i.test(r)) out.push([trained?'ok':'warn','⚡', trained ? `Entreno de hoy (${esc(r)}) registrado.` : `Hoy toca <b>${esc(r)}</b>. Aún no registras el entreno.`]);
+  const wr = weightRate();
+  if(wr!==null){
+    if(wr < 0.1) out.push(['warn','⚖',`Tu peso sube ${wr.toFixed(2)} kg/semana. Para ganar masa apunta a 0.25–0.5: sube ~200 kcal diarias.`]);
+    else if(wr > 0.7) out.push(['warn','⚖',`Subes ${wr.toFixed(2)} kg/semana: muy rápido, probablemente grasa. Baja ~150 kcal.`]);
+    else out.push(['ok','⚖',`Ritmo de volumen ideal: +${wr.toFixed(2)} kg/semana.`]);
+  }
+  // Sueño
+  const avg = sleepAvg(7), tom = blocksOn((now.getDay()+1)%7)[0];
+  if(avg!==null && avg < S.sleepGoal-0.5) out.push(['bad','☾',`Promedias ${avg.toFixed(1)} h de sueño (meta ${S.sleepGoal} h). Dormir poco frena la ganancia muscular.`]);
+  if(tom){ const bed = fmtMin(toMin(tom.start)-60-S.sleepGoal*60); out.push(['info','☾',`Mañana empiezas a las ${tom.start} (${esc(tom.title)}). Acuéstate a las <b>${bed}</b> para dormir ${S.sleepGoal} h.`]); }
+  if(S.habits.length){ const dn = (S.habitLog[td]||[]).filter(id=>S.habits.some(h=>h.id===id)).length;
+    out.push([dn===S.habits.length?'ok':'info','✓',`Hábitos de hoy: <b>${dn}/${S.habits.length}</b>.${dn<S.habits.length?' Pendientes: '+S.habits.filter(h=>!(S.habitLog[td]||[]).includes(h.id)).map(h=>esc(h.name)).slice(0,3).join(', ')+'.':''}`]); }
+  if(!out.length) out.push(['info','✦','Agrega datos en cada sección y aquí verás recomendaciones personalizadas.']);
+  return out;
+}
+
+/* ================== RENDER ================== */
+const charts = {};
+function chart(id,cfg){
+  if(!window.Chart) return;
+  const el = document.getElementById(id); if(!el) return;
+  charts[id]?.destroy();
+  charts[id] = new Chart(el,cfg);
+}
+if(window.Chart){
+  Chart.defaults.color='#667085'; Chart.defaults.borderColor='#E6E9ED'; Chart.defaults.font.family="Inter, system-ui, sans-serif";
+  Chart.defaults.plugins.legend.labels.boxWidth=10;
+}
+const lastDays = n => Array.from({length:n},(_,i)=>addDays(today(),i-n+1));
+const dayLbl = d => d.slice(8)+'/'+d.slice(5,7);
+
+function kpi(lbl,val,sub,pct,color){
+  return `<div class="card kpi"><div class="lbl">${lbl}</div><div class="val">${val}</div>${pct!=null?`<div class="bar"><i style="width:${Math.min(100,Math.max(0,pct))}%;background:${color||'var(--accent)'}"></i></div>`:''}<div class="sub" style="margin-top:6px">${sub}</div></div>`;
+}
+
+
+function renderDayStrip(){
+  const now = new Date(), nowMin = now.getHours()*60+now.getMinutes(), A = 6*60, B = 23*60, span = B-A;
+  const pct = m => Math.min(100,Math.max(0,(m-A)/span*100));
+  const bl = blocksOn(now.getDay());
+  const cur = bl.find(b=>toMin(b.start)<=nowMin && toMin(b.end)>nowMin), nx = bl.find(b=>toMin(b.start)>nowMin);
+  const segs = bl.map(b=>{ const s = toMin(b.start), e = toMin(b.end)>s?toMin(b.end):1440; if(e<=A||s>=B) return '';
+    return `<div class="seg ${e<=nowMin?'past':''}" style="left:${pct(s)}%;width:calc(${pct(e)-pct(s)}% - 2px);background:${SCHED_CATS[b.cat]||'#066fd1'}" title="${esc(b.title)} ${b.start}–${b.end}">${esc(b.title)}</div>`; }).join('');
+  const ticks = [6,9,12,15,18,21].map(h=>`<span style="left:${pct(h*60)}%">${h<=12?h:h-12}${h<12?' a. m.':' p. m.'}</span>`).join('');
+  let line = bl.length ? (cur ? `Ahora: <b>${esc(cur.title)}</b> hasta las ${cur.end}.` : 'Sin compromisos en este momento.') + (nx ? ` Sigue <b>${esc(nx.title)}</b> a las ${nx.start}.` : ' No hay más bloques hoy.') : 'Hoy no tienes bloques. Agrégalos en Horario o díselos al asistente.';
+  $('#dayStrip').innerHTML = `<div class="day"><div class="wd">${now.toLocaleDateString('es-CO',{weekday:'long'})}</div><div class="dn">${now.getDate()}</div><div class="mo">${now.toLocaleDateString('es-CO',{month:'long'})}</div></div>
+    <div><div class="track">${segs}${nowMin>=A&&nowMin<=B?`<div class="nowm" style="left:${pct(nowMin)}%"></div>`:''}</div><div class="ticks">${ticks}</div><div class="line">${line}</div></div>`;
+}
+function renderInicio(){
+  renderDayStrip();
+  const td = today(), mk = monthKey(td), now = new Date();
+  const spent = sum(monthTx(mk,'gasto'),t=>t.amount), pct = S.budget? spent/S.budget*100 : 0;
+  const T = targets(), m = mealsOn(td), p = sum(m,x=>x.p), k = sum(m,x=>x.k);
+  const avg = sleepAvg(7), r = S.routine[now.getDay()]||'—', trained = S.workouts.some(w=>w.date===td);
+  $('#kpis').innerHTML =
+    kpi('Gastos del mes', money(spent), `${pct.toFixed(0)}% de ${money(S.budget)}`, pct, pct>100?'var(--red)':pct>80?'var(--amber)':'var(--green)') +
+    kpi('Proteína hoy', `${Math.round(p)} / ${T.prot} g`, `${Math.round(k)} / ${T.kcal} kcal`, p/T.prot*100, 'var(--accent)') +
+    kpi('Sueño (7 días)', avg!==null ? avg.toFixed(1)+' h' : '—', `Meta: ${S.sleepGoal} h`, avg!==null? avg/S.sleepGoal*100 : 0, 'var(--blue)') +
+    kpi('Entreno de hoy', esc(r), trained ? '✓ Registrado' : (/descanso/i.test(r)?'Día de recuperación':'Pendiente'), null);
+  // agenda
+  const nowMin = now.getHours()*60+now.getMinutes(), bl = blocksOn(now.getDay());
+  $('#agDay').textContent = DAYS[now.getDay()];
+  $('#agToday').innerHTML = bl.length ? bl.map(b=>{
+    const isNow = toMin(b.start)<=nowMin && toMin(b.end)>nowMin, past = toMin(b.end)<=nowMin;
+    return `<div class="it ${isNow?'now':''}" style="border-left-color:${SCHED_CATS[b.cat]||'#066fd1'};${past?'opacity:.45':''}"><span class="t">${b.start} – ${b.end}</span><span>${esc(b.title)}</span><span class="badge bg-secondary-lt tag" style="margin-left:auto">${esc(b.cat)}</span></div>`;
+  }).join('') : `<div class="empty">No tienes bloques para hoy. Agrégalos en <b>Horario</b>.</div>`;
+  $('#insights').innerHTML = insights().map(([c,i,t])=>`<div class="${c}"><span>${i}</span><span>${t}</span></div>`).join('');
+  // charts
+  const d14 = lastDays(14);
+  chart('chDashSpend',{type:'bar',data:{labels:d14.map(dayLbl),datasets:[{data:d14.map(d=>sum(S.tx.filter(t=>t.date===d&&t.type==='gasto'),t=>t.amount)),backgroundColor:'#066fd1',borderRadius:5}]},options:{plugins:{legend:{display:false}},scales:{y:{ticks:{callback:short}}}}});
+  chart('chDashSleep',{type:'line',data:{labels:d14.map(dayLbl),datasets:[{data:d14.map(d=>S.sleep.find(s=>s.date===d)?.hours??null),borderColor:'#4299e1',backgroundColor:'rgba(66,153,225,.12)',fill:true,tension:.35,spanGaps:true},{data:d14.map(()=>S.sleepGoal),borderColor:'#cbd5e1',borderDash:[5,5],pointRadius:0}]},options:{plugins:{legend:{display:false}},scales:{y:{suggestedMin:4,suggestedMax:10}}}});
+  weightChart('chDashWeight');
+}
+
+function weightChart(id){
+  const w = [...S.weights].sort((a,b)=>a.date.localeCompare(b.date));
+  chart(id,{type:'line',data:{labels:w.map(x=>dayLbl(x.date)),datasets:[{label:'Peso',data:w.map(x=>x.kg),borderColor:'#2fb344',backgroundColor:'rgba(47,179,68,.10)',fill:true,tension:.3},{label:'Meta',data:w.map(()=>+S.profile.goal),borderColor:'#cbd5e1',borderDash:[5,5],pointRadius:0}]},options:{plugins:{legend:{display:false}}}});
+}
+
+/* --- Horario --- */
+const H0 = 5, H1 = 24, PX = 44;
+function renderHorario(){
+  const now = new Date(), nowMin = now.getHours()*60+now.getMinutes();
+  let html = `<div class="hd"></div>` + ORDER.map(d=>`<div class="hd ${d===now.getDay()?'today':''}">${DAYS[d].slice(0,3)}</div>`).join('');
+  const height = (H1-H0)*PX;
+  html += `<div class="hours" style="height:${height}px">` + Array.from({length:H1-H0},(_,i)=>`<span style="top:${i*PX}px">${String(H0+i).padStart(2,'0')}:00</span>`).join('') + `</div>`;
+  ORDER.forEach(d=>{
+    html += `<div class="col" style="height:${height}px">` + Array.from({length:H1-H0},(_,i)=>`<div class="ln" style="top:${i*PX}px"></div>`).join('');
+    // Distribución de bloques que se cruzan en columnas lado a lado
+    const items = blocksOn(d).map(b=>{ const s = Math.max(toMin(b.start), H0*60), e = Math.min(toMin(b.end) > toMin(b.start) ? toMin(b.end) : 1440, H1*60); return {b,s,e,lane:0,lanes:1}; });
+    let group = [], groupEnd = -1;
+    const flush = () => { const n = Math.max(1, ...group.map(g=>g.lane+1)); group.forEach(g=>g.lanes=n); group = []; };
+    items.forEach(it=>{
+      if(it.s >= groupEnd) { flush(); groupEnd = -1; }
+      const used = group.filter(g=>g.e > it.s).map(g=>g.lane);
+      let lane = 0; while(used.includes(lane)) lane++;
+      it.lane = lane; group.push(it); groupEnd = Math.max(groupEnd, it.e);
+    });
+    flush();
+    items.forEach(({b,s,e,lane,lanes})=>{
+      const top = (s-H0*60)/60*PX, h = Math.max(20,(e-s)/60*PX), col = SCHED_CATS[b.cat]||'#066fd1', w = 100/lanes;
+      html += `<div class="blk" style="top:${top}px;height:${h}px;left:calc(${lane*w}% + 3px);width:calc(${w}% - 6px);right:auto;background:${col}26;border-color:${col}" title="${esc(b.title)} ${b.start}-${b.end}"><button class="x" data-del="schedule:${b.id}">×</button><b>${esc(b.title)}</b>${b.start}–${b.end}</div>`;
+    });
+    if(d===now.getDay() && nowMin>=H0*60) html += `<div class="nowline" style="top:${(nowMin-H0*60)/60*PX}px"></div>`;
+    html += `</div>`;
+  });
+  $('#timeline').innerHTML = html;
+  // horas por categoría
+  const hrs = {}; S.schedule.forEach(b=>{ let d=toMin(b.end)-toMin(b.start); if(d<0)d+=1440; hrs[b.cat]=(hrs[b.cat]||0)+d/60; });
+  const entries = Object.entries(hrs).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  $('#schedStats').innerHTML = entries.map(([c,h])=>kpi(c+' / semana', h.toFixed(1)+' h', `${(h/7).toFixed(1)} h promedio por día`, h/40*100, SCHED_CATS[c])).join('');
+}
+
+/* --- Finanzas --- */
+function renderFinanzas(){
+  const sel = $('#finMonth');
+  const months = [...new Set([monthKey(today()), ...S.tx.map(t=>monthKey(t.date))])].sort().reverse();
+  const prev = sel.value || months[0];
+  sel.innerHTML = months.map(m=>`<option value="${m}">${MONTHS[+m.slice(5)-1]} ${m.slice(0,4)}</option>`).join('');
+  sel.value = months.includes(prev) ? prev : months[0];
+  const mk = sel.value;
+  const inc = sum(monthTx(mk,'ingreso'),t=>t.amount), exp = sum(monthTx(mk,'gasto'),t=>t.amount), bal = inc-exp;
+  const pct = S.budget? exp/S.budget*100 : 0;
+  $('#finKpis').innerHTML =
+    kpi('Ingresos', `<span class="pos">${money(inc)}</span>`, `${monthTx(mk,'ingreso').length} movimientos`, null) +
+    kpi('Gastos', `<span class="neg">${money(exp)}</span>`, `${monthTx(mk,'gasto').length} movimientos`, null) +
+    kpi('Balance', `<span class="${bal>=0?'pos':'neg'}">${money(bal)}</span>`, inc? `Tasa de ahorro: ${(bal/inc*100).toFixed(0)}%` : 'Sin ingresos registrados', null) +
+    kpi('Presupuesto', `${pct.toFixed(0)}%`, `${money(Math.max(0,S.budget-exp))} disponibles`, pct, pct>100?'var(--red)':pct>80?'var(--amber)':'var(--green)');
+  $('#finMonthLbl').textContent = MONTHS[+mk.slice(5)-1]+' '+mk.slice(0,4);
+  document.querySelector('#fBudget [name=budget]').value = S.budget;
+  const rows = S.tx.filter(t=>monthKey(t.date)===mk).sort((a,b)=>b.date.localeCompare(a.date));
+  $('#txTable').innerHTML = rows.length ? `<tr><th>Fecha</th><th>Categoría</th><th>Nota</th><th style="text-align:right">Monto</th><th></th></tr>` + rows.map(t=>
+    `<tr><td>${dayLbl(t.date)}</td><td><span class="badge bg-secondary-lt tag">${esc(t.cat)}</span></td><td class="muted">${esc(t.note)}</td><td style="text-align:right" class="${t.type==='gasto'?'neg':'pos'}">${t.type==='gasto'?'−':'+'}${money(t.amount)}</td><td><button class="x" data-del="tx:${t.id}">×</button></td></tr>`).join('')
+    : `<tr><td class="empty">Sin movimientos este mes.</td></tr>`;
+  const byCat = {}; monthTx(mk,'gasto').forEach(t=>byCat[t.cat]=(byCat[t.cat]||0)+t.amount);
+  const cats = Object.keys(byCat);
+  chart('chCat',{type:'doughnut',data:{labels:cats,datasets:[{data:cats.map(c=>byCat[c]),backgroundColor:cats.map(c=>CAT_COLORS[EXP_CATS.indexOf(c)%CAT_COLORS.length]),borderWidth:0}]},options:{cutout:'68%',plugins:{legend:{position:'bottom'},tooltip:{callbacks:{label:c=>' '+c.label+': '+money(c.raw)}}}}});
+  const m6 = Array.from({length:6},(_,i)=>{ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-5+i); return iso(d).slice(0,7); });
+  chart('chMonths',{type:'bar',data:{labels:m6.map(m=>MONTHS[+m.slice(5)-1]),datasets:[
+    {label:'Ingresos',data:m6.map(m=>sum(monthTx(m,'ingreso'),t=>t.amount)),backgroundColor:'#2fb344',borderRadius:5},
+    {label:'Gastos',data:m6.map(m=>sum(monthTx(m,'gasto'),t=>t.amount)),backgroundColor:'#d63939',borderRadius:5}]},options:{scales:{y:{ticks:{callback:short}}}}});
+}
+function fillTxCats(){ const t=$('#txType').value; $('#txCat').innerHTML=(t==='gasto'?EXP_CATS:INC_CATS).map(c=>`<option>${c}</option>`).join(''); }
+
+/* --- Gym --- */
+function renderGym(){
+  const td = today(), wk = addDays(td,-6);
+  const week = S.workouts.filter(w=>w.date>=wk);
+  const vol = sum(week,w=>w.sets*w.reps*w.kg);
+  const daysTrained = new Set(week.map(w=>w.date)).size;
+  const lastW = [...S.weights].sort((a,b)=>b.date.localeCompare(a.date))[0];
+  const wr = weightRate();
+  $('#gymKpis').innerHTML =
+    kpi('Días entrenados (7d)', daysTrained, `Rutina: ${Object.values(S.routine).filter(r=>r&&!/descanso/i.test(r)).length} días/sem`, daysTrained/5*100, 'var(--green)') +
+    kpi('Volumen semanal', short(vol)+' kg', 'series × reps × kg', null) +
+    kpi('Peso actual', lastW? lastW.kg+' kg' : '—', `Meta: ${S.profile.goal} kg`, lastW ? (lastW.kg/S.profile.goal*100) : 0, 'var(--accent)') +
+    kpi('Ritmo', wr!==null ? (wr>=0?'+':'')+wr.toFixed(2)+' kg/sem' : '—', 'Ideal volumen: +0.25 a 0.5', null);
+  if(!$('#routine').children.length){
+    $('#routine').innerHTML = ORDER.map(d=>`<div class="f"><label>${DAYS[d]}</label><input class="form-control" data-rday="${d}" value="${esc(S.routine[d]||'')}"></div>`).join('');
+  }
+  const exs = [...new Set(S.workouts.map(w=>w.ex))];
+  const base = ['Press banca','Sentadilla','Peso muerto','Press militar','Remo con barra','Dominadas','Curl bíceps','Fondos','Prensa','Hip thrust','Jalón al pecho','Extensión tríceps'];
+  $('#exList').innerHTML = [...new Set([...exs,...base])].map(e=>`<option value="${esc(e)}">`).join('');
+  const rows = [...S.workouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,60);
+  $('#workTable').innerHTML = rows.length ? `<tr><th>Fecha</th><th>Ejercicio</th><th>Series×Reps</th><th>Kg</th><th></th></tr>`+rows.map(w=>`<tr><td>${dayLbl(w.date)}</td><td>${esc(w.ex)}</td><td>${w.sets}×${w.reps}</td><td>${w.kg}</td><td><button class="x" data-del="workouts:${w.id}">×</button></td></tr>`).join('') : `<tr><td class="empty">Aún no registras ejercicios.</td></tr>`;
+  const pr = {}; S.workouts.forEach(w=>{ const e1 = w.kg*(1+w.reps/30); if(!pr[w.ex]||e1>pr[w.ex].e1) pr[w.ex]={...w,e1}; });
+  const prs = Object.values(pr).sort((a,b)=>b.e1-a.e1);
+  $('#prTable').innerHTML = prs.length ? `<tr><th>Ejercicio</th><th>Mejor serie</th><th>1RM estimado</th></tr>`+prs.map(p=>`<tr><td>${esc(p.ex)}</td><td>${p.kg} kg × ${p.reps}</td><td><b>${Math.round(p.e1)} kg</b></td></tr>`).join('') : `<tr><td class="empty">Tus récords aparecerán aquí.</td></tr>`;
+  const sel = $('#exSel'), prev = sel.value;
+  sel.innerHTML = exs.map(e=>`<option>${esc(e)}</option>`).join('');
+  if(exs.includes(prev)) sel.value = prev;
+  const ex = sel.value, hist = S.workouts.filter(w=>w.ex===ex).sort((a,b)=>a.date.localeCompare(b.date));
+  const byDate = {}; hist.forEach(w=>byDate[w.date]=Math.max(byDate[w.date]||0, w.kg*(1+w.reps/30)));
+  initExLib();
+  chart('chEx',{type:'line',data:{labels:Object.keys(byDate).map(dayLbl),datasets:[{label:'1RM est.',data:Object.values(byDate).map(Math.round),borderColor:'#ae3ec9',tension:.3}]},options:{plugins:{legend:{display:false}}}});
+  weightChart('chWeight');
+}
+
+/* --- Nutrición --- */
+function renderNutricion(){
+  const f = $('#fProfile'), p = S.profile;
+  if(document.activeElement?.form !== f) Object.keys(p).forEach(k=>{ if(f[k]) f[k].value = p[k]; });
+  const T = targets();
+  $('#targetsBox').innerHTML = `
+    <div class="info"><span>🔥</span><span>Metabolismo basal: <b>${T.bmr}</b> kcal · Mantenimiento: <b>${T.tdee}</b> kcal</span></div>
+    <div class="ok"><span>🎯</span><span>Meta diaria: <b>${T.kcal} kcal</b> · Proteína <b>${T.prot} g</b> · Carbos <b>${T.carb} g</b> · Grasa <b>${T.fat} g</b></span></div>
+    <div class="info"><span>💡</span><span>Proteína repartida en 4–5 comidas (~${Math.round(T.prot/4.5)} g c/u). Creatina 3–5 g/día. Pésate 1 vez por semana en ayunas.</span></div>
+    ${p.goal>p.weight?`<div class="info"><span>📈</span><span>Te faltan ${(p.goal-p.weight).toFixed(1)} kg. A 0.35 kg/semana ≈ ${Math.ceil((p.goal-p.weight)/0.35)} semanas.</span></div>`:''}`;
+  const td = today(), m = mealsOn(td);
+  $('#nutDate').textContent = new Date().toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'short'});
+  const mac = [['Calorías',sum(m,x=>x.k),T.kcal,'kcal','#f59f00'],['Proteína',sum(m,x=>x.p),T.prot,'g','#066fd1'],['Carbohidratos',sum(m,x=>x.c),T.carb,'g','#4299e1'],['Grasa',sum(m,x=>x.f),T.fat,'g','#d6336c']];
+  $('#macros').innerHTML = mac.map(([n,v,t,u,c])=>`<div class="macro mb"><div class="lbl"><span>${n}</span><span><b>${Math.round(v)}</b> / ${t} ${u}</span></div><div class="bar"><i style="width:${Math.min(100,v/t*100)}%;background:${c}"></i></div></div>`).join('');
+  $('#presets').innerHTML = FOODS.map((x,i)=>`<span class="chip" data-food="${i}">+ ${x.n} <span class="muted">${x.p}g</span></span>`).join('');
+  $('#mealTable').innerHTML = m.length ? `<tr><th>Comida</th><th>Kcal</th><th>P</th><th>C</th><th>G</th><th></th></tr>`+m.map(x=>`<tr><td>${esc(x.name)}</td><td>${x.k}</td><td>${x.p}</td><td>${x.c}</td><td>${x.f}</td><td><button class="x" data-del="meals:${x.id}">×</button></td></tr>`).join('') : `<tr><td class="empty">Nada registrado hoy.</td></tr>`;
+}
+
+/* --- Sueño --- */
+function renderSueno(){
+  const a7 = sleepAvg(7), a30 = sleepAvg(30);
+  const last = [...S.sleep].sort((a,b)=>b.date.localeCompare(a.date));
+  const l7 = last.filter(s=>s.date>=addDays(today(),-6));
+  // consistencia: desviación de la hora de acostarse
+  let cons = null;
+  if(l7.length>=3){ const b = l7.map(s=>{ let m=toMin(s.bed); if(m<720)m+=1440; return m; }); const mean=sum(b,x=>x)/b.length; cons=Math.sqrt(sum(b,x=>(x-mean)**2)/b.length); }
+  const q = l7.length ? sum(l7,s=>s.q)/l7.length : null;
+  $('#sleepKpis').innerHTML =
+    kpi('Promedio 7 días', a7!==null?a7.toFixed(1)+' h':'—', `Meta ${S.sleepGoal} h`, a7!==null?a7/S.sleepGoal*100:0, 'var(--blue)') +
+    kpi('Promedio 30 días', a30!==null?a30.toFixed(1)+' h':'—', `${S.sleep.length} noches registradas`, null) +
+    kpi('Calidad media', q!==null?q.toFixed(1)+' / 5':'—', 'Últimos 7 días', q!==null?q/5*100:0, 'var(--green)') +
+    kpi('Regularidad', cons!==null?'±'+Math.round(cons)+' min':'—', cons===null?'Registra 3+ noches':cons<30?'Excelente':cons<60?'Mejorable':'Irregular', cons!==null?Math.max(0,100-cons):0, cons!==null&&cons<45?'var(--green)':'var(--amber)');
+  const f = $('#fSleep'); if(!f.date.value) f.date.value = today(); f.goal.value = S.sleepGoal;
+  const tips = [];
+  const tom = blocksOn((new Date().getDay()+1)%7)[0];
+  if(tom) tips.push(['info','⏰',`Mañana: ${esc(tom.title)} a las ${tom.start}. Hora ideal para dormir: <b>${fmtMin(toMin(tom.start)-60-S.sleepGoal*60)}</b>.`]);
+  if(a7!==null && a7<S.sleepGoal-0.5) tips.push(['bad','☾',`Deuda de sueño semanal ≈ ${((S.sleepGoal-a7)*7).toFixed(1)} h. Adelanta la hora de acostarte 30 min.`]);
+  if(cons!==null && cons>=45) tips.push(['warn','↻','Tu hora de dormir varía mucho. Fija una hora y respétala incluso el fin de semana.']);
+  tips.push(['info','💡','Sin pantallas 30–60 min antes, cuarto oscuro y fresco, nada de cafeína después de las 2 p.m.']);
+  $('#sleepTips').innerHTML = tips.map(([c,i,t])=>`<div class="${c}"><span>${i}</span><span>${t}</span></div>`).join('');
+  const d21 = lastDays(21);
+  chart('chSleep',{type:'bar',data:{labels:d21.map(dayLbl),datasets:[{data:d21.map(d=>S.sleep.find(s=>s.date===d)?.hours??0),backgroundColor:d21.map(d=>{const h=S.sleep.find(s=>s.date===d)?.hours??0;return h>=S.sleepGoal-0.25?'#2fb344':h>=S.sleepGoal-1.25?'#f59f00':'#d63939';}),borderRadius:5}]},options:{plugins:{legend:{display:false}},scales:{y:{suggestedMax:10}}}});
+  $('#sleepTable').innerHTML = last.length ? `<tr><th>Fecha</th><th>Acostarse</th><th>Despertar</th><th>Horas</th><th>Calidad</th><th></th></tr>`+last.slice(0,30).map(s=>`<tr><td>${dayLbl(s.date)}</td><td>${s.bed||'—'}</td><td>${s.wake||'—'}</td><td><b>${s.hours}</b></td><td>${'★'.repeat(s.q)}<span class="muted">${'★'.repeat(5-s.q)}</span></td><td><button class="x" data-del="sleep:${s.id}">×</button></td></tr>`).join('') : `<tr><td class="empty">Sin registros.</td></tr>`;
+}
+
+/* --- Asistente (chat) --- */
+const QUICK = ['resumen','¿cuánto he gastado?','¿qué me falta comer?','¿qué entreno hoy?','¿a qué hora duermo?','ayuda'];
+function renderChat(){
+  if(!S.chat.length) S.chat.push({r:'a',t:`¡Hola ${esc(S.name||'')}! Soy Atlas`+', tu asistente. Puedes escribirme en lenguaje natural para registrar gastos, comidas, entrenos, sueño o peso, o pedirme un resumen. Escribe "ayuda" para ver ejemplos.'});
+  $('#msgs').innerHTML = S.chat.map(m=>`<div class="msg ${m.r}">${m.r==='a'?m.t:esc(m.t)}</div>`).join('') + (chatBusy?'<div class="msg a typing">Atlas está pensando…</div>':'');
+  $('#msgs').scrollTop = 1e9;
+  $('#quick').innerHTML = QUICK.map(q=>`<span class="chip" data-q="${q}">${q}</span>`).join('');
+}
+const num = s => { s = String(s).trim(); if(/^\d{1,3}([.,]\d{3})+$/.test(s)) return +s.replace(/[.,]/g,''); return +s.replace(',','.'); };
+function guessCat(t){
+  const map = [['Comida',/comida|almuerzo|desayuno|cena|restaurante|mercado|super|rappi|caf[eé]|domicilio|hamburguesa|pizza|corrientazo/],
+    ['Transporte',/uber|taxi|bus|transmilenio|gasolina|didi|metro|parqueadero|peaje|indriver|cabify/],['Vivienda',/arriendo|renta|administraci/],
+    ['Servicios',/luz|agua|internet|gas\b|celular|plan|factura/],['Gym/Salud',/gym|gimnasio|prote[ií]na|creatina|suplemento|farmacia|m[eé]dico|droguer/],
+    ['Suscripciones',/netflix|spotify|suscrip|youtube|icloud|disney|chatgpt|claude/],['Ropa',/ropa|zapato|tenis|camis|pantal/],
+    ['Educación',/curso|libro|universidad|clase|diplomado/],['Negocio',/negocio|inventario|mercanc|proveedor|env[ií]o/],['Ocio',/cine|fiesta|bar|salida|juego|cerveza|trago|concierto/]];
+  for(const [c,r] of map) if(r.test(t)) return c;
+  return 'Otros';
+}
+function greet(){
+  const h = new Date().getHours(), sal = h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches';
+  const now = new Date(), nowMin = now.getHours()*60+now.getMinutes(), nx = blocksOn(now.getDay()).find(b=>toMin(b.start)>nowMin);
+  const T = targets(), p = sum(mealsOn(today()),x=>x.p), r = S.routine[now.getDay()]||'';
+  const lines = [];
+  if(nx) lines.push(`Lo siguiente en tu agenda: <b>${esc(nx.title)}</b> a las ${nx.start}.`);
+  if(p < T.prot) lines.push(`Te faltan <b>${Math.round(T.prot-p)} g de proteína</b> hoy.`);
+  if(r && !/descanso/i.test(r) && !S.workouts.some(w=>w.date===today())) lines.push(`Hoy toca <b>${esc(r)}</b>.`);
+  return `${sal}${S.name?', '+esc(S.name):''}. ${lines.join(' ')}\n¿Qué quieres registrar o revisar?`;
+}
+function agent(input){
+  const t = input.toLowerCase().trim(), td = today(), nt = norm(input).replace(/[¡!¿?.,]/g,'').trim();
+  if(/^(hola|holi|buenas|buen dia|buenos dias|buenas tardes|buenas noches|hey|ey|que mas|que tal|saludos|hello|hi|alo|q mas|qhubo|quiubo)\b/.test(nt) && nt.split(' ').length<=5) return greet();
+  if(/^(como estas|como vas|todo bien)/.test(nt)) return 'Todo bien por aquí, listo para ayudarte. '+greet();
+  if(/^(gracias|mil gracias|muchas gracias|listo gracias|ok gracias|perfecto|genial|bacano|chevere)/.test(nt)) return 'Con gusto. Aquí estoy cuando necesites registrar algo o revisar cómo vas.';
+  if(/(quien eres|que eres|que puedes hacer|como funcionas|que haces|para que sirves)/.test(nt)) return 'Soy Atlas, tu asistente personal. Registro gastos, ingresos, comidas, entrenos, sueño, peso, hábitos y tu horario, y te digo cómo vas.\n'+agent('ayuda');
+  if(/^(chao|adios|nos vemos|hasta luego|bye)/.test(nt)) return 'Hasta luego. Recuerda registrar tu sueño mañana al despertar.';
+  const amount = (n,mult) => Math.round(num(n) * (mult ? 1000 : 1));
+  let m;
+  if(/^(ayuda|help|\?)$/.test(t)) return `Puedo entender cosas como:
+• <b>gasté 25 mil en almuerzo</b> / <b>pagué 1.200.000 arriendo</b>
+• <b>recibí 3 millones de honorarios</b>
+• <b>comí pechuga 200g</b> / <b>comí almuerzo 750 kcal 40g proteína</b>
+• <b>press banca 4x8 60kg</b>
+• <b>dormí 7.5h</b> o <b>dormí de 23:30 a 6:30</b>
+• <b>peso 72.4</b>
+• <b>hecho agua</b> (marca un hábito)
+• <b>clase lunes 18:00-20:00</b> (agrega al horario)
+• <b>ia, …</b> para preguntarle a la IA de Ollama
+• <b>resumen</b>, <b>¿cuánto he gastado?</b>, <b>¿qué me falta comer?</b>, <b>¿qué entreno hoy?</b>`;
+  // Gasto
+  if((m = t.match(/(?:gast[eé]|pagu[eé]|compr[eé]|gasto)\s+\$?\s*([\d.,]+)\s*(k|mil|millones?|m)?\b\s*(?:pesos)?\s*(?:en|de|por)?\s*(.*)/))){
+    let v = num(m[1]); if(/^(k|mil)$/.test(m[2]||'')) v*=1e3; if(/^(m|millon|millones)$/.test(m[2]||'')) v*=1e6;
+    const note = m[3]||'', cat = guessCat(note); if(!v) return 'No entendí el monto.';
+    S.tx.push({id:uid(),type:'gasto',amount:Math.round(v),cat,date:td,note});
+    const spent = sum(monthTx(monthKey(td),'gasto'),x=>x.amount);
+    return `✓ Gasto registrado: <b>${money(v)}</b> en <b>${cat}</b>.\nLlevas ${money(spent)} este mes (${S.budget?Math.round(spent/S.budget*100):0}% del presupuesto).`;
+  }
+  // Ingreso
+  if((m = t.match(/(?:recib[ií]|gan[eé]|ingres[oó]|me pagaron|cobr[eé]|ingreso)\s+\$?\s*([\d.,]+)\s*(k|mil|millones?|m)?\b\s*(?:pesos)?\s*(?:de|por|en)?\s*(.*)/))){
+    let v = num(m[1]); if(/^(k|mil)$/.test(m[2]||'')) v*=1e3; if(/^(m|millon|millones)$/.test(m[2]||'')) v*=1e6;
+    const note = m[3]||''; const cat = /honorari|cliente|caso|proceso/.test(note)?'Honorarios':/salario|sueldo|n[oó]mina/.test(note)?'Salario':/negocio|venta|ropa|pijama/.test(note)?'Negocio':'Otros';
+    S.tx.push({id:uid(),type:'ingreso',amount:Math.round(v),cat,date:td,note});
+    return `✓ Ingreso registrado: <b>${money(v)}</b> (${cat}).`;
+  }
+  // Sueño
+  if((m = t.match(/dorm[ií]\s+(?:de\s+)?(\d{1,2}(?::\d{2})?)\s*(?:a|hasta)\s*(\d{1,2}(?::\d{2})?)/))){
+    const fx = s => s.includes(':') ? s.padStart(5,'0') : s.padStart(2,'0')+':00';
+    let bed = fx(m[1]), wake = fx(m[2]);
+    if(toMin(bed) < 12*60 && toMin(bed) > toMin(wake)) {} // ya cruza
+    const hours = sleepHours(bed,wake);
+    S.sleep = S.sleep.filter(s=>s.date!==td); S.sleep.push({id:uid(),date:td,bed,wake,hours,q:4});
+    return `✓ Sueño registrado: <b>${hours} h</b> (${bed} → ${wake}). ${hours<S.sleepGoal-0.5?'Por debajo de tu meta, intenta acostarte más temprano hoy.':'¡Bien!'}`;
+  }
+  if((m = t.match(/dorm[ií]\s+(\d+(?:[.,]\d+)?)\s*(?:h|horas?)/))){
+    const hours = num(m[1]);
+    S.sleep = S.sleep.filter(s=>s.date!==td); S.sleep.push({id:uid(),date:td,bed:'',wake:'',hours,q:hours>=S.sleepGoal?4:3});
+    return `✓ Registré <b>${hours} h</b> de sueño hoy. Promedio 7 días: ${sleepAvg(7).toFixed(1)} h.`;
+  }
+  // Peso corporal
+  if((m = t.match(/^(?:peso|pes[eé]|me pes[eé])\s*:?\s*(\d{2,3}(?:[.,]\d+)?)\s*(?:kg|kilos)?$/))){
+    const kg = num(m[1]); S.weights = S.weights.filter(w=>w.date!==td); S.weights.push({id:uid(),date:td,kg}); S.profile.weight = kg;
+    return `✓ Peso registrado: <b>${kg} kg</b>. Te faltan ${(S.profile.goal-kg).toFixed(1)} kg para tu meta. Recalculé tus calorías: ${targets().kcal} kcal/día.`;
+  }
+  // Ejercicio
+  if((m = t.match(/^(?:hice\s+)?(.+?)\s+(\d+)\s*[x×]\s*(\d+)\s*(?:@|con|a|de)?\s*(\d+(?:[.,]\d+)?)\s*(?:kg|kilos)/))){
+    const ex = m[1].replace(/^./,c=>c.toUpperCase()); const w = {id:uid(),date:td,ex,sets:+m[2],reps:+m[3],kg:num(m[4])};
+    const prevBest = Math.max(0,...S.workouts.filter(x=>x.ex.toLowerCase()===ex.toLowerCase()).map(x=>x.kg*(1+x.reps/30)));
+    S.workouts.push(w); const e1 = w.kg*(1+w.reps/30);
+    return `✓ ${esc(ex)}: ${w.sets}×${w.reps} con ${w.kg} kg.${e1>prevBest && prevBest>0?`\n<b>Nuevo récord.</b> 1RM estimado ${Math.round(e1)} kg.`:''}`;
+  }
+  // Hábito
+  if((m = t.match(/^(?:hecho|listo|marcar|marca|cumpl[ií])\s+(.+)/))){
+    const h = S.habits.find(x=>norm(x.name).includes(norm(m[1])) || norm(m[1]).includes(norm(x.name).split(' ')[0]));
+    if(!h) return `No encontré el hábito "${esc(m[1])}". Tus hábitos: ${S.habits.map(x=>esc(x.name)).join(', ')}.`;
+    markHabit(h.id, td, true); return `✓ Hábito marcado: <b>${esc(h.name)}</b>. Racha: ${streak(h.id)} días.`;
+  }
+  // Comida
+  if((m = t.match(/^(?:com[ií]|desayun[eé]|almorc[eé]|cen[eé]|merend[eé])\s+(.+)/))){
+    const txt = m[1];
+    const kc = txt.match(/(\d+)\s*kcal/), pr = txt.match(/(\d+(?:[.,]\d+)?)\s*g?\s*(?:de\s*)?prot/);
+    if(kc){ const meal={id:uid(),date:td,name:txt.replace(/\d+\s*kcal|\d+(?:[.,]\d+)?\s*g?\s*(?:de\s*)?prote[ií]na?/g,'').trim()||'Comida',k:+kc[1],p:pr?num(pr[1]):0,c:0,f:0}; S.meals.push(meal);
+      return `✓ ${esc(meal.name)}: ${meal.k} kcal, ${meal.p} g proteína.\n${restoNut()}`; }
+    const words = txt.split(/\s+y\s+|,\s*|\s+con\s+/);
+    const found = [];
+    words.forEach(w=>{ const k5 = norm(w).split(' ')[0].slice(0,5); if(!k5) return;
+      const f = FOODS.find(x=>norm(x.n).startsWith(k5));
+      if(f) return found.push(f);
+      const l = LOCAL_FOODS.find(x=>norm(x.n).startsWith(k5));
+      if(l){ const g = +(w.match(/(\d+)\s*g/)||[])[1] || 150; const r=g/100; found.push({n:`${l.n} ${g}g`,k:Math.round(l.k*r),p:+(l.p*r).toFixed(1),c:+(l.c*r).toFixed(1),f:+(l.f*r).toFixed(1)}); } });
+    if(found.length){ found.forEach(f=>S.meals.push({id:uid(),date:td,name:f.n,k:f.k,p:f.p,c:f.c,f:f.f})); return `✓ Agregué: ${found.map(f=>f.n).join(', ')}.\n${restoNut()}`; }
+    agent.miss = true;
+    return `No tengo "${esc(txt)}" en mi base. Dime las calorías, ej: <b>comí ${esc(txt)} 600 kcal 35g proteína</b>.`;
+  }
+  // Horario
+  if((m = t.match(/^(.+?)\s+(lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\s+(\d{1,2}:\d{2})\s*[-a]\s*(\d{1,2}:\d{2})/))){
+    const dmap={lunes:1,martes:2,miercoles:3,'miércoles':3,jueves:4,viernes:5,sabado:6,'sábado':6,domingo:0};
+    const title = m[1].replace(/^./,c=>c.toUpperCase()), cat = /gym|entreno/.test(t)?'Gym':/clase|estudi|curso/.test(t)?'Estudio':/trabajo|audiencia|cliente|reuni/.test(t)?'Trabajo':'Personal';
+    S.schedule.push({id:uid(),day:dmap[m[2]],start:m[3].padStart(5,'0'),end:m[4].padStart(5,'0'),title,cat});
+    return `✓ Agregué <b>${esc(title)}</b> el ${m[2]} de ${m[3]} a ${m[4]} (${cat}).`;
+  }
+  // Consultas
+  if(/gast|dinero|plata|presupuesto|finanz/.test(t)){
+    const mk = monthKey(td), sp = sum(monthTx(mk,'gasto'),x=>x.amount), inc = sum(monthTx(mk,'ingreso'),x=>x.amount);
+    const byCat={}; monthTx(mk,'gasto').forEach(x=>byCat[x.cat]=(byCat[x.cat]||0)+x.amount);
+    const top = Object.entries(byCat).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([c,v])=>`• ${c}: ${money(v)}`).join('\n');
+    return `Este mes: gastos <b>${money(sp)}</b>, ingresos <b>${money(inc)}</b>, balance <b>${money(inc-sp)}</b>.\nPresupuesto usado: ${S.budget?Math.round(sp/S.budget*100):0}%.${top?'\nPrincipales categorías:\n'+top:''}`;
+  }
+  if(/com(er|ida)|prote|calor|macro|dieta/.test(t)) return restoNut() + '\nSugerencia rápida: ' + suggestFood();
+  if(/entren|gym|rutina|toca/.test(t)){ const r=S.routine[new Date().getDay()]||'nada definido'; return `Hoy toca: <b>${esc(r)}</b>. Mañana: ${esc(S.routine[(new Date().getDay()+1)%7]||'—')}.`; }
+  if(/dorm|sueñ|acost/.test(t)){ const tom = blocksOn((new Date().getDay()+1)%7)[0]; const a=sleepAvg(7);
+    return (tom?`Mañana tu primer bloque es <b>${esc(tom.title)}</b> a las ${tom.start}. Acuéstate a las <b>${fmtMin(toMin(tom.start)-60-S.sleepGoal*60)}</b>.`:`Para dormir ${S.sleepGoal} h despertando a las 6:00, acuéstate a las ${fmtMin(360-S.sleepGoal*60)}.`)+(a!==null?`\nPromedio 7 días: ${a.toFixed(1)} h.`:''); }
+  if(/resumen|hoy|c[oó]mo voy|estado/.test(t)) return insights().map(([,i,x])=>i+' '+x).join('\n');
+  agent.miss = true;
+  return `No logré entender "${esc(input)}". Prueba con algo como <b>gasté 20 mil en taxi</b>, <b>comí arroz con pollo</b>, <b>dormí 7h</b> o <b>resumen</b>. Escribe <b>ayuda</b> para ver todo.`;
+}
+function restoNut(){ const T=targets(), m=mealsOn(today()); const p=T.prot-sum(m,x=>x.p), k=T.kcal-sum(m,x=>x.k);
+  return `Hoy llevas ${Math.round(sum(m,x=>x.k))}/${T.kcal} kcal y ${Math.round(sum(m,x=>x.p))}/${T.prot} g de proteína. ${p>0?`Faltan <b>${Math.round(p)} g</b> de proteína y ${Math.max(0,Math.round(k))} kcal.`:'¡Proteína cumplida!'}`; }
+function suggestFood(){ const T=targets(), m=mealsOn(today()); const p=T.prot-sum(m,x=>x.p), k=T.kcal-sum(m,x=>x.k);
+  if(p<=0 && k<=0) return 'ya cumpliste tus metas de hoy.';
+  if(p>40) return 'Pechuga 200g + arroz 200g + aguacate 1/2 (~750 kcal, 69 g proteína).';
+  if(p>20) return 'Batido de proteína con leche entera y banano (~475 kcal, 38 g proteína).';
+  return 'Yogur griego con avena y mantequilla de maní (~680 kcal, 36 g proteína).'; }
+
+/* ================== RED (timeout + errores) ================== */
+async function fetchJSON(url, opts={}, ms=20000){
+  const ctl = new AbortController(), t = setTimeout(()=>ctl.abort(), ms);
+  try{
+    const r = await fetch(url, {...opts, signal:ctl.signal});
+    const txt = await r.text(); let j = null; try{ j = JSON.parse(txt); }catch(e){}
+    if(!r.ok) throw new Error((j && (j.error?.message || (typeof j.error==='string'?j.error:''))) || ('HTTP '+r.status));
+    return j;
+  }catch(e){ if(e.name==='AbortError') throw new Error('tiempo de espera agotado'); throw e; }
+  finally{ clearTimeout(t); }
+}
+
+/* ================== ASISTENTE: Ollama (gratis, en tu PC) + modo local ================== */
+let chatBusy = false;
+async function ollamaFetch(path, body, ms){
+  const ctl = new AbortController(), t = setTimeout(()=>ctl.abort(), ms||60000);
+  try{
+    const r = await fetch(CFG.ollamaUrl.replace(/\/+$/,'')+path, body ? {method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify(body), signal:ctl.signal} : {signal:ctl.signal});
+    if(!r.ok) throw new Error('HTTP '+r.status); return await r.json();
+  }catch(e){ throw new Error(e.name==='AbortError' ? 'tiempo de espera agotado' : (e.message||'sin conexión')); }
+  finally{ clearTimeout(t); }
+}
+async function ollamaModels(){ const j = await ollamaFetch('/api/tags', null, 4000); return (j.models||[]).map(m=>m.name); }
+const strip = h => String(h).replace(/<[^>]+>/g,'');
+const safeHTML = s => esc(s).replace(/&lt;(\/?)b&gt;/g,'<$1b>');
+function buildSystemPrompt(){
+  const td = today(), now = new Date(), dow = now.getDay(), mk = monthKey(td), T = targets(), m = mealsOn(td);
+  const sched = d => blocksOn(d).map(b=>`${b.start}-${b.end} ${b.title} [${b.cat}]`).join('; ') || 'nada';
+  const byCat = {}; monthTx(mk,'gasto').forEach(x=>byCat[x.cat]=(byCat[x.cat]||0)+x.amount);
+  const lastEx = [...S.workouts].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8).map(w=>`${w.date} ${w.ex} ${w.sets}x${w.reps} ${w.kg}kg`).join('; ') || 'ninguno';
+  const a7 = sleepAvg(7), done = S.habitLog[td]||[];
+  return `Eres Atlas, el asistente personal de ${S.name||'el usuario'}. Respondes SIEMPRE en español, breve, práctico y con números concretos. Hoy es ${DAYS[dow]} ${td}, hora ${fmtMin(now.getHours()*60+now.getMinutes())}. Moneda: COP.
+
+CONTEXTO ACTUAL:
+- Finanzas del mes: gastos ${sum(monthTx(mk,'gasto'),x=>x.amount)}, ingresos ${sum(monthTx(mk,'ingreso'),x=>x.amount)}, presupuesto ${S.budget}. Gastos por categoría: ${JSON.stringify(byCat)}.
+- Nutrición (objetivo ganar masa muscular): meta ${T.kcal} kcal, ${T.prot} g proteína, ${T.carb} g carbohidratos, ${T.fat} g grasa. Consumido hoy: ${Math.round(sum(m,x=>x.k))} kcal, ${Math.round(sum(m,x=>x.p))} g proteína. Peso ${S.profile.weight} kg, meta ${S.profile.goal} kg, estatura ${S.profile.height} cm.
+- Gym: hoy toca "${S.routine[dow]||'-'}", mañana "${S.routine[(dow+1)%7]||'-'}". Últimos ejercicios: ${lastEx}.
+- Sueño: meta ${S.sleepGoal} h, promedio 7 días ${a7!==null?a7.toFixed(1):'sin datos'} h.
+- Horario hoy: ${sched(dow)}. Mañana: ${sched((dow+1)%7)}.
+- Hábitos: ${S.habits.map(h=>h.name+(done.includes(h.id)?' (hecho hoy)':'')).join(', ')||'ninguno'}.
+
+Responde en español de Colombia. Si te saluda o conversa, responde con calidez y brevedad y ofrece algo útil del contexto (lo siguiente en su agenda, lo que le falta comer, etc.).
+
+FORMATO: devuelve SOLO un objeto JSON válido, sin texto antes ni después:
+{"reply":"texto para el usuario","actions":[...]}
+"reply" puede usar <b>negrita</b> y \\n para saltos de línea. Ningún otro HTML.
+Incluye acciones SOLO si el usuario reporta algo que hizo, gastó, recibió, comió, durmió, pesó, o pide agregar algo. Si solo pregunta o pide consejo, "actions": [].
+Tipos de acción (fechas YYYY-MM-DD, por defecto hoy):
+{"type":"gasto","amount":25000,"cat":"Comida","note":"almuerzo","date":"${td}"}
+{"type":"ingreso","amount":3000000,"cat":"Honorarios","note":"cliente X"}
+{"type":"comida","name":"Bandeja paisa","kcal":1100,"p":55,"c":110,"f":50}
+{"type":"ejercicio","ex":"Press banca","sets":4,"reps":8,"kg":60}
+{"type":"sueno","hours":7.5,"bed":"23:00","wake":"06:30","q":4}
+{"type":"peso","kg":72.4}
+{"type":"bloque","day":1,"start":"08:00","end":"10:00","title":"Audiencia","cat":"Trabajo"}
+{"type":"habito","name":"agua"}
+Categorías de gasto: ${EXP_CATS.join(', ')}. De ingreso: ${INC_CATS.join(', ')}. De horario: ${Object.keys(SCHED_CATS).join(', ')}.
+day: 0=domingo, 1=lunes … 6=sábado. "30 mil" o "30k" = 30000; "1 millón" o "un palo" = 1000000.
+Si no te dan los macros de una comida, estímalos con porciones colombianas típicas.
+Para consejos de dieta, entreno, sueño o dinero usa el contexto y da pasos concretos.`;
+}
+function applyAction(a){
+  if(!a || typeof a!=='object') return null;
+  const td = today(), date = /^\d{4}-\d{2}-\d{2}$/.test(a.date||'') ? a.date : td, n = v => Number(v);
+  const isT = v => /^\d{2}:\d{2}$/.test(v||'');
+  switch(a.type){
+    case 'gasto': case 'ingreso': {
+      const amount = Math.round(n(a.amount)); if(!(amount>0)) return null;
+      const list = a.type==='gasto'?EXP_CATS:INC_CATS; const cat = list.includes(a.cat) ? a.cat : (a.type==='gasto'?guessCat(norm(a.note)):'Otros');
+      S.tx.push({id:uid(),type:a.type,amount,cat,date,note:String(a.note||'').slice(0,120)});
+      return `${a.type==='gasto'?'Gasto':'Ingreso'} ${money(amount)} (${cat})`; }
+    case 'comida': {
+      const k = Math.round(n(a.kcal)); if(!(k>=0) || !a.name) return null;
+      S.meals.push({id:uid(),date,name:String(a.name).slice(0,80),k,p:+n(a.p||0).toFixed(1),c:+n(a.c||0).toFixed(1),f:+n(a.f||0).toFixed(1)});
+      return `Comida: ${a.name} (${k} kcal)`; }
+    case 'ejercicio': {
+      if(!a.ex || !(n(a.sets)>0) || !(n(a.reps)>0) || !(n(a.kg)>=0)) return null;
+      S.workouts.push({id:uid(),date,ex:String(a.ex).slice(0,60),sets:n(a.sets),reps:n(a.reps),kg:n(a.kg)});
+      return `${a.ex} ${a.sets}×${a.reps} ${a.kg} kg`; }
+    case 'sueno': {
+      let h = n(a.hours); if(isT(a.bed) && isT(a.wake)) h = sleepHours(a.bed,a.wake); if(!(h>0 && h<=16)) return null;
+      S.sleep = S.sleep.filter(s=>s.date!==date); S.sleep.push({id:uid(),date,bed:isT(a.bed)?a.bed:'',wake:isT(a.wake)?a.wake:'',hours:Math.round(h*10)/10,q:Math.min(5,Math.max(1,Math.round(n(a.q)||4)))});
+      return `Sueño ${Math.round(h*10)/10} h`; }
+    case 'peso': {
+      const kg = n(a.kg); if(!(kg>=20 && kg<=300)) return null;
+      S.weights = S.weights.filter(w=>w.date!==date); S.weights.push({id:uid(),date,kg}); S.profile.weight = kg; return `Peso ${kg} kg`; }
+    case 'bloque': {
+      const d = n(a.day); if(!(d>=0&&d<=6) || !isT(a.start) || !isT(a.end) || !a.title) return null;
+      S.schedule.push({id:uid(),day:d,start:a.start,end:a.end,title:String(a.title).slice(0,60),cat:SCHED_CATS[a.cat]?a.cat:'Personal'});
+      return `Horario: ${a.title} ${DAYS[d]} ${a.start}`; }
+    case 'habito': {
+      const h = S.habits.find(x=>norm(x.name).includes(norm(a.name)) || norm(a.name).includes(norm(x.name))); if(!h) return null;
+      markHabit(h.id, date, true); return `Hábito: ${h.name}`; }
+  }
+  return null;
+}
+async function agentSmart(input){
+  const mode = S.aiMode || 'auto';
+  const forced = /^\s*(ia|ai|ollama)[\s,:]+/i.test(input);
+  const t = input.replace(/^\s*(ia|ai|ollama)[\s,:]+/i,'');
+  if(mode==='off' && !forced) return agent(t);
+  if(mode==='auto' && !forced){ agent.miss = false; const local = agent(t); if(!agent.miss) return local; }
+  if(!CFG.ollamaModel) return agent(t) + '\n<span class="muted">(Para respuestas con IA, elige un modelo de Ollama en Ajustes)</span>';
+  let hist = S.chat.slice(-6).map(m=>({role:m.r==='u'?'user':'assistant',content:strip(m.t).slice(0,600)}));
+  if(!hist.length || hist[hist.length-1].role!=='user') hist.push({role:'user',content:t});
+  hist[hist.length-1].content = t;
+  let out;
+  try{
+    const j = await ollamaFetch('/api/chat', {model:CFG.ollamaModel, stream:false, format:'json', options:{temperature:0.3}, messages:[{role:'system',content:buildSystemPrompt()}, ...hist]}, 90000);
+    out = j?.message?.content || '';
+  }catch(e){
+    console.warn('ollama', e);
+    return agent(t) + `\n<span class="muted">(Ollama no respondió: ${esc(e.message)}. Respondí en modo local)</span>`;
+  }
+  if(!out) return agent(t);
+  let data;
+  try{ data = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}')+1)); }catch(e){ return safeHTML(out); }
+  const done = (Array.isArray(data.actions)?data.actions:[]).map(a=>{ try{ return applyAction(a); }catch(e){ console.error(e); return null; } }).filter(Boolean);
+  return safeHTML(data.reply || 'Listo.') + (done.length ? `\n<span class="muted">✓ ${done.map(esc).join(' · ')}</span>` : '') + `\n<span class="muted" style="font-size:11px">IA local · ${esc(CFG.ollamaModel)}</span>`;
+}
+
+/* ================== BUSCADOR DE ALIMENTOS ================== */
+let foodResults = [];
+async function searchFood(q){
+  const nq = norm(q), words = nq.split(/\s+/).filter(Boolean);
+  const local = LOCAL_FOODS.filter(x=>{ const n = norm(x.n); return n.includes(nq) || words.every(w=>n.includes(w.slice(0,Math.max(3,w.length-1)))); }).map(x=>({...x,src:'Base local'}));
+  foodResults = local; drawFoodRes('Buscando en Open Food Facts…');
+  try{
+    const isCode = /^\d{8,14}$/.test(q.trim());
+    const url = isCode ? `https://world.openfoodfacts.org/api/v2/product/${q.trim()}.json?fields=product_name,brands,nutriments,image_small_url`
+                       : `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=15&fields=product_name,brands,nutriments,image_small_url`;
+    const j = await fetchJSON(url, {}, 12000);
+    const items = isCode ? (j?.product ? [j.product] : []) : (j?.products || []);
+    const off = items.map(p=>{ const nu = p.nutriments||{}; let k = nu['energy-kcal_100g']; if(k==null && nu.energy_100g!=null) k = nu.energy_100g/4.184;
+      if(k==null || !p.product_name) return null;
+      return {n:p.product_name+(p.brands?' — '+p.brands.split(',')[0]:''),k:+k,p:+(nu.proteins_100g||0),c:+(nu.carbohydrates_100g||0),f:+(nu.fat_100g||0),img:p.image_small_url,src:'Open Food Facts'}; }).filter(Boolean);
+    foodResults = [...local, ...off];
+    drawFoodRes(foodResults.length ? '' : 'Sin resultados. Escríbele al asistente "comí '+q+'" con las calorías.');
+  }catch(e){ drawFoodRes(local.length ? 'Open Food Facts no respondió; mostrando base local.' : 'Sin conexión con Open Food Facts y no está en la base local.'); }
+}
+function portion(x,g){ const r = g/100; return {k:Math.round(x.k*r),p:+(x.p*r).toFixed(1),c:+(x.c*r).toFixed(1),f:+(x.f*r).toFixed(1)}; }
+function drawFoodRes(note){
+  const g = +$('#foodG').value || 100;
+  $('#foodRes').innerHTML = (note?`<p class="muted mb" style="font-size:12px">${esc(note)}</p>`:'') + (foodResults.length ? foodResults.map((x,i)=>{ const p = portion(x,g);
+    return `<div class="food-res">${x.img?`<img class="im" src="${esc(x.img)}" loading="lazy" alt="">`:'<div class="im">🍽</div>'}<div class="grow"><b>${esc(x.n)}</b><span class="muted" style="font-size:12px">${g} g · <b style="display:inline;color:var(--text)">${p.k} kcal</b> · P ${p.p} · C ${p.c} · G ${p.f} <span class="badge bg-secondary-lt tag">${x.src}</span></span></div><button class="btn" data-addfood="${i}">+ Agregar</button></div>`; }).join('') : '<div class="empty">Sin resultados.</div>');
+}
+
+/* ================== BIBLIOTECA DE EJERCICIOS (free-exercise-db) ================== */
+const EXDB_URL = 'exercises.json';
+const EXIMG = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
+const MUSCLES_ES = {abdominals:'Abdomen',abductors:'Abductores',adductors:'Aductores',biceps:'Bíceps',calves:'Pantorrillas',chest:'Pecho',forearms:'Antebrazos',glutes:'Glúteos',hamstrings:'Isquiotibiales',lats:'Dorsales','lower back':'Espalda baja','middle back':'Espalda media',neck:'Cuello',quadriceps:'Cuádriceps',shoulders:'Hombros',traps:'Trapecios',triceps:'Tríceps'};
+const EQUIP_ES = {barbell:'Barra',dumbbell:'Mancuernas',cable:'Polea',machine:'Máquina','body only':'Peso corporal',kettlebells:'Kettlebell',bands:'Bandas','e-z curl bar':'Barra Z','medicine ball':'Balón medicinal','exercise ball':'Fitball','foam roll':'Foam roller',other:'Otro'};
+const MUSCLE_C = {chest:'#066fd1',triceps:'#4263eb',shoulders:'#ae3ec9',biceps:'#d6336c',lats:'#0ca678','middle back':'#2fb344','lower back':'#74b816',traps:'#17a2b8',quadriceps:'#f76707',hamstrings:'#f59f00',glutes:'#d63939',calves:'#e8590c',abdominals:'#9ba9be',forearms:'#6b7a90',adductors:'#f76707',abductors:'#f76707',neck:'#6b7a90'};
+const LEVEL_ES = {beginner:'Principiante',intermediate:'Intermedio',expert:'Avanzado'};
+const ROUTINE_MAP = [[/pecho/,['chest']],[/tr[ií]cep/,['triceps']],[/espalda/,['lats','middle back']],[/b[ií]cep/,['biceps']],[/pierna|cu[aá]dri/,['quadriceps','hamstrings']],[/gl[uú]teo/,['glutes']],[/hombro/,['shoulders']],[/abdom/,['abdominals']],[/pantorr/,['calves']]];
+let EXDB = null, exLoading = false, exLimit = 24, exInit = false;
+function todayMuscles(){ const r = norm(S.routine[new Date().getDay()]||''); const out = []; ROUTINE_MAP.forEach(([re,ms])=>{ if(re.test(r)) out.push(...ms); }); return out; }
+function initExLib(){
+  if(!exInit){
+    exInit = true;
+    $('#exMuscle').innerHTML = '<option value="">Todos</option>' + Object.entries(MUSCLES_ES).sort((a,b)=>a[1].localeCompare(b[1])).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+    $('#exEquip').innerHTML = '<option value="">Todos</option>' + Object.entries(EQUIP_ES).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');
+    ['exQ','exMuscle','exEquip','exLevel'].forEach(id=>$('#'+id).addEventListener(id==='exQ'?'input':'change',()=>{ exLimit = 24; drawEx(); }));
+    $('#exMore').addEventListener('click',()=>{ exLimit += 24; drawEx(); });
+  }
+  const tm = todayMuscles();
+  $('#exQuick').innerHTML = (tm.length?`<span class="muted" style="font-size:12px;align-self:center">Hoy (${esc(S.routine[new Date().getDay()])}):</span>`:'') + [...new Set(tm)].map(m=>`<span class="chip ${$('#exMuscle').value===m?'on':''}" data-exm="${m}">${MUSCLES_ES[m]}</span>`).join('');
+  if(EXDB) return drawEx();
+  loadExDB();
+}
+async function loadExDB(){
+  if(EXDB || exLoading) return; exLoading = true;
+  $('#exGrid').innerHTML = '<div class="empty">Cargando biblioteca de ejercicios…</div>';
+  try{ const d = await fetchJSON(EXDB_URL,{},30000); if(!Array.isArray(d)) throw new Error('formato inválido'); EXDB = d; drawEx(); }
+  catch(e){ console.warn(e); $('#exGrid').innerHTML = `<div class="empty">No se pudo cargar la biblioteca (${esc(e.message)}). <br><br><button class="btn" data-exretry>Reintentar</button></div>`; }
+  finally{ exLoading = false; }
+}
+function drawEx(){
+  if(!EXDB) return;
+  const q = norm($('#exQ').value), mu = $('#exMuscle').value, eq = $('#exEquip').value, lv = $('#exLevel').value;
+  const list = EXDB.filter(x=>(!q || norm(x.name).includes(q)) && (!mu || (x.primaryMuscles||[]).includes(mu)) && (!eq || x.equipment===eq) && (!lv || x.level===lv));
+  $('#exCount').textContent = `${list.length} de ${EXDB.length} ejercicios · free-exercise-db`;
+  $('#exGrid').innerHTML = list.length ? list.slice(0,exLimit).map(x=>{ const a = x.images?.[0], b = x.images?.[1]||a;
+    return `<div class="excard" data-exid="${esc(x.id)}">${x.images?.[0]?`<img src="${EXIMG+esc(x.images[0])}" data-a="${EXIMG+esc(x.images[0])}" data-b="${EXIMG+esc(x.images[1]||x.images[0])}" loading="lazy" alt="">`:''}<div class="exhead" style="--c:${MUSCLE_C[x.primaryMuscles?.[0]]||'#066fd1'}">${MUSCLES_ES[x.primaryMuscles?.[0]]||'General'}</div><div class="b"><b>${esc(x.name)}</b><span class="badge bg-secondary-lt tag">${MUSCLES_ES[x.primaryMuscles?.[0]]||'—'}</span> <span class="badge bg-secondary-lt tag">${EQUIP_ES[x.equipment]||'—'}</span></div></div>`; }).join('') : '<div class="empty">Sin resultados con esos filtros.</div>';
+  $('#exMore').hidden = list.length <= exLimit;
+}
+function openEx(id){
+  const x = EXDB?.find(e=>e.id===id); if(!x) return;
+  const rec = x.mechanic==='compound' ? '3–4 series × 6–10 reps · descanso 2–3 min' : '3 series × 10–15 reps · descanso 60–90 s';
+  $('#modalBox').innerHTML = `<div style="display:flex;justify-content:space-between;align-items:start;gap:10px"><div><h2 style="font-size:20px">${esc(x.name)}</h2>
+    <div class="chips mt"><span class="badge bg-secondary-lt tag">${LEVEL_ES[x.level]||x.level}</span><span class="badge bg-secondary-lt tag">${EQUIP_ES[x.equipment]||'—'}</span>${(x.primaryMuscles||[]).map(m=>`<span class="badge bg-secondary-lt tag" style="border-color:var(--accent)">${MUSCLES_ES[m]||m}</span>`).join('')}${(x.secondaryMuscles||[]).map(m=>`<span class="badge bg-secondary-lt tag">${MUSCLES_ES[m]||m}</span>`).join('')}</div></div>
+    <button class="x" data-close style="font-size:22px">×</button></div>
+    <div class="imgs">${(x.images||[]).slice(0,2).map(i=>`<img src="${EXIMG+esc(i)}" alt="">`).join('')}</div>
+    <div class="ins mb"><div class="ok"><span>🎯</span><span>Para ganar masa: <b>${rec}</b></span></div></div>
+    <h3 style="font-size:14px;margin-bottom:8px">Instrucciones <small class="muted">(en inglés, de la fuente original)</small></h3>
+    <ol>${(x.instructions||[]).map(s=>`<li>${esc(s)}</li>`).join('')}</ol>
+    <div class="mt" style="display:flex;gap:8px"><button class="btn btn-primary" data-exlog="${esc(x.id)}">Registrar este ejercicio</button><button class="btn" data-close>Cerrar</button></div>`;
+  $('#modal').classList.add('open');
+}
+
+/* ================== TEMPORIZADOR DE DESCANSO ================== */
+let tSet = 90, tLeft = 90, tInt = null;
+const drawTimer = () => { const el = $('#timer'); el.textContent = String(Math.floor(tLeft/60)).padStart(2,'0')+':'+String(tLeft%60).padStart(2,'0'); el.classList.toggle('run',!!tInt); $('#tStart').textContent = tInt?'Pausar':'Iniciar'; };
+function beep(){ try{ const ctx = new (window.AudioContext||window.webkitAudioContext)(); [0,0.35,0.7].forEach(t=>{ const o=ctx.createOscillator(), g=ctx.createGain(); o.frequency.value=880; o.connect(g); g.connect(ctx.destination); g.gain.setValueAtTime(.25,ctx.currentTime+t); g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.3); o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+.3); }); }catch(e){} try{ navigator.vibrate?.([200,100,200]); }catch(e){} }
+function timerToggle(){
+  if(tInt){ clearInterval(tInt); tInt = null; return drawTimer(); }
+  if(tLeft<=0) tLeft = tSet;
+  tInt = setInterval(()=>{ tLeft--; if(tLeft<=0){ tLeft = 0; clearInterval(tInt); tInt = null; beep(); toast('⏱ ¡Descanso terminado! Siguiente serie'); } drawTimer(); },1000);
+  drawTimer();
+}
+
+/* ================== HÁBITOS ================== */
+function markHabit(id, date, val){ const l = new Set(S.habitLog[date]||[]); val ? l.add(id) : l.delete(id); S.habitLog[date] = [...l]; }
+function streak(id){ let d = today(), n = 0; if(!(S.habitLog[d]||[]).includes(id)) d = addDays(d,-1); while((S.habitLog[d]||[]).includes(id)){ n++; d = addDays(d,-1); } return n; }
+function renderHabitos(){
+  const td = today(), d14 = lastDays(14), H = S.habits;
+  const doneToday = H.filter(h=>(S.habitLog[td]||[]).includes(h.id)).length;
+  const total = H.length*14, hits = sum(H,h=>d14.filter(d=>(S.habitLog[d]||[]).includes(h.id)).length);
+  const best = H.map(h=>({h,s:streak(h.id)})).sort((a,b)=>b.s-a.s)[0];
+  $('#habKpis').innerHTML =
+    kpi('Hoy', `${doneToday} / ${H.length}`, 'hábitos cumplidos', H.length?doneToday/H.length*100:0, 'var(--green)') +
+    kpi('Cumplimiento 14 días', total?Math.round(hits/total*100)+'%':'—', `${hits} de ${total} check-ins`, total?hits/total*100:0, 'var(--accent)') +
+    kpi('Mejor racha activa', best?best.s+' días':'—', best?esc(best.h.name):'', null) +
+    kpi('Hábitos activos', H.length, 'Constancia > intensidad', null);
+  $('#habTable').innerHTML = H.length ? `<tr><th>Hábito</th>${d14.map(d=>`<th class="c" style="${d===td?'color:var(--accent2)':''}">${DAYS[new Date(d+'T12:00').getDay()].slice(0,1)}<br>${d.slice(8)}</th>`).join('')}<th class="c">Racha</th><th></th></tr>` +
+    H.map(h=>`<tr><td style="white-space:nowrap">${esc(h.name)}</td>${d14.map(d=>`<td class="c"><span class="dot ${(S.habitLog[d]||[]).includes(h.id)?'on':''}" data-hab="${h.id}|${d}"></span></td>`).join('')}<td class="c"><b>${streak(h.id)}</b> d</td><td><button class="x" data-delhab="${h.id}">×</button></td></tr>`).join('')
+    : '<tr><td class="empty">Agrega tu primer hábito.</td></tr>';
+}
+
+/* ================== AJUSTES ================== */
+function renderAjustes(){
+  $('#fGeneral').name.value = S.name || '';
+  const sb = $('#fSb'); if(!sb.contains(document.activeElement)){ sb.sbUrl.value = CFG.sbUrl; sb.sbKey.value = CFG.sbKey; }
+  $('#secStatus').innerHTML = cloud.ready
+      ? `<div class="ok"><span></span><span><b>Sincronizado</b> como ${esc(cloud.user?.email||'')}. Abre esta página en tu celular, entra con la misma cuenta y verás los mismos datos.</span></div>`
+      : (!CFG.sbUrl ? '<div class="warn"><span></span><span>Falta conectar Supabase (abajo, en "Conexión con Supabase"). Mientras tanto los datos quedan solo en este dispositivo.</span></div>'
+                    : '<div class="warn"><span></span><span><b>Sin sesión.</b> Entra con tu correo para guardar en la nube. Si es la primera vez, usa "Crear cuenta".</span></div>');
+  $('#btnLogout').hidden = !cloud.ready;
+  const fa = $('#fAI');
+  if(!fa.contains(document.activeElement)){ fa.ollamaUrl.value = CFG.ollamaUrl; fa.mode.value = S.aiMode || 'auto';
+    if(CFG.ollamaModel && ![...fa.ollamaModel.options].some(o=>o.value===CFG.ollamaModel)) fa.ollamaModel.add(new Option(CFG.ollamaModel, CFG.ollamaModel));
+    fa.ollamaModel.value = CFG.ollamaModel; }
+  if(!$('#aiStatus').dataset.tested) $('#aiStatus').innerHTML = `<div class="info"><span></span><span>Los registros normales los resuelve el modo local, sin IA. Ollama solo responde cuando el modo local no entiende o cuando empiezas con <b>ia,</b> (ej: "ia, arma mi dieta de mañana"). Funciona en el PC donde corre Ollama; en el celular se usa el modo local.</span></div>`;
+}
+async function testAI(){
+  const box = $('#aiStatus'); box.dataset.tested = '1'; box.innerHTML = '<div class="info"><span></span><span>Buscando Ollama…</span></div>';
+  CFG.ollamaUrl = $('#fAI').ollamaUrl.value.trim() || 'http://localhost:11434'; saveCfg();
+  try{
+    const models = await ollamaModels(); const sel = $('#fAI').ollamaModel;
+    sel.innerHTML = '<option value="">— elige —</option>' + models.map(m=>`<option>${esc(m)}</option>`).join('');
+    if(!models.length){ box.innerHTML = '<div class="warn"><span></span><span>Ollama responde pero no tiene modelos. En una terminal ejecuta <b>ollama pull llama3.2</b>.</span></div>'; return; }
+    if(!CFG.ollamaModel || !models.includes(CFG.ollamaModel)){ CFG.ollamaModel = models[0]; saveCfg(); }
+    sel.value = CFG.ollamaModel;
+    box.innerHTML = `<div class="ok"><span></span><span>Ollama conectado. Modelos: <b>${models.map(esc).join(', ')}</b>. Usando <b>${esc(CFG.ollamaModel)}</b>.</span></div>`;
+  }catch(e){
+    box.innerHTML = `<div class="bad"><span></span><span>No pude conectar con Ollama (${esc(e.message)}). Revisa que esté abierto y que permita esta página: variable <b>OLLAMA_ORIGINS</b> = <b>${esc(location.origin)}</b>, luego reinicia Ollama.</span></div>`;
+  }
+}
+async function exportData(){
+  const copy = structuredClone(S); delete copy.ai; delete copy.pin;
+  const json = JSON.stringify(copy,null,2), filename = `atlas-respaldo-${today()}.json`;
+  let dl = null; try{ dl = (window.claude && window.claude.use) ? await window.claude.use('downloads') : null; }catch(e){}
+  if(dl){ try{ await dl.save({filename, data:json}); toast('Respaldo guardado'); }catch(e){ toast('Descarga cancelada'); } return; }
+  try{ const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([json],{type:'application/json'})); a.download = filename; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast('Respaldo guardado'); }
+  catch(e){ toast('Este navegador no permite descargar el respaldo'); }
+}
+function askConfirm(msg, okLabel){
+  return new Promise(res=>{
+    $('#modalBox').innerHTML = `<h3 style="font-size:17px;margin-bottom:6px">${esc(msg)}</h3><p class="muted">Esta acción no se puede deshacer.</p><div style="display:flex;gap:8px;justify-content:flex-end" class="mt"><button class="btn" id="cNo">Cancelar</button><button class="btn btn-danger" id="cYes">${esc(okLabel||'Confirmar')}</button></div>`;
+    const close = v => { $('#modal').classList.remove('open'); res(v); };
+    $('#modal').classList.add('open'); $('#cNo').onclick = ()=>close(false); $('#cYes').onclick = ()=>close(true);
+  });
+}
+
+/* ================== NAVEGACIÓN ================== */
+const TITLES = {habitos:['Hábitos','Constancia diaria y rachas'],ajustes:['Ajustes','Cuenta, seguridad e IA'],inicio:['Inicio','Tu día de un vistazo'],asistente:['Asistente','Habla con Atlas en lenguaje natural'],horario:['Horario','Planea tu semana'],finanzas:['Finanzas','Ingresos, gastos y presupuesto'],gym:['Gym','Rutina, progresión y peso'],nutricion:['Nutrición','Dieta para ganar masa muscular'],sueno:['Sueño','Descanso y recuperación']};
+const RENDER = {inicio:renderInicio,asistente:renderChat,horario:renderHorario,finanzas:renderFinanzas,gym:renderGym,nutricion:renderNutricion,sueno:renderSueno,habitos:renderHabitos,ajustes:renderAjustes};
+let view = 'inicio';
+function go(v){
+  view = v;
+  document.querySelectorAll('.snav').forEach(b=>b.classList.toggle('active',b.dataset.view===v));
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('active',s.id==='v-'+v));
+  $('#title').textContent = TITLES[v][0]; $('#subtitle').textContent = TITLES[v][1];
+  render();
+  try{ history.replaceState(null,'','#'+v); }catch(e){}
+}
+function render(){ try{ RENDER[view](); }catch(e){ console.error(e); toast('Error al mostrar la sección'); } }
+function commit(msg){ save(); render(); if(msg) toast(msg); }
+
+/* ================== EVENTOS ================== */
+document.querySelectorAll('.snav').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
+document.addEventListener('click',e=>{
+  const d = e.target.closest('[data-del]');
+  if(d){ const [col,id] = d.dataset.del.split(':'); S[col] = S[col].filter(x=>x.id!==id); return commit('Eliminado'); }
+  const f = e.target.closest('[data-food]');
+  if(f){ const x = FOODS[+f.dataset.food]; S.meals.push({id:uid(),date:today(),name:x.n,k:x.k,p:x.p,c:x.c,f:x.f}); return commit('+ '+x.n); }
+  const q = e.target.closest('[data-q]');
+  if(q){ $('#chatIn').value = q.dataset.q; $('#chatForm').requestSubmit(); return; }
+  const af = e.target.closest('[data-addfood]');
+  if(af){ const x = foodResults[+af.dataset.addfood]; const g = +$('#foodG').value||100; const p = portion(x,g);
+    S.meals.push({id:uid(),date:today(),name:`${x.n} (${g} g)`.slice(0,90),...p}); return commit(`+ ${p.k} kcal agregadas`); }
+  const hb = e.target.closest('[data-hab]');
+  if(hb){ const [id,d] = hb.dataset.hab.split('|'); markHabit(id,d,!(S.habitLog[d]||[]).includes(id)); return commit(); }
+  const dh = e.target.closest('[data-delhab]');
+  if(dh){ const id = dh.dataset.delhab; askConfirm('¿Eliminar este hábito y su historial?','Eliminar').then(ok=>{ if(!ok) return; S.habits = S.habits.filter(h=>h.id!==id); Object.keys(S.habitLog).forEach(d=>S.habitLog[d]=S.habitLog[d].filter(x=>x!==id)); commit('Hábito eliminado'); }); return; }
+  const exm = e.target.closest('[data-exm]');
+  if(exm){ const sel = $('#exMuscle'); sel.value = sel.value===exm.dataset.exm ? '' : exm.dataset.exm; exLimit = 24; return initExLib(); }
+  const exc = e.target.closest('[data-exid]');
+  if(exc) return openEx(exc.dataset.exid);
+  if(e.target.closest('[data-exretry]')) return loadExDB();
+  const exl = e.target.closest('[data-exlog]');
+  if(exl){ const x = EXDB.find(z=>z.id===exl.dataset.exlog); $('#modal').classList.remove('open'); const f = $('#fWork'); f.ex.value = x.name; f.scrollIntoView({behavior:'smooth',block:'center'}); f.kg.focus(); return; }
+  if(e.target.closest('[data-close]') || e.target.id==='modal') return $('#modal').classList.remove('open');
+  const ts = e.target.closest('[data-tset]');
+  if(ts){ tSet = tLeft = +ts.dataset.tset; clearInterval(tInt); tInt = null; document.querySelectorAll('[data-tset]').forEach(c=>c.classList.toggle('on',c===ts)); return drawTimer(); }
+});
+document.addEventListener('mouseover',e=>{ const i = e.target.closest('.excard img'); if(i) i.src = i.dataset.b; });
+document.addEventListener('mouseout',e=>{ const i = e.target.closest('.excard img'); if(i) i.src = i.dataset.a; });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('#modal').classList.remove('open'); });
+$('#tStart').addEventListener('click',timerToggle);
+$('#tReset').addEventListener('click',()=>{ clearInterval(tInt); tInt = null; tLeft = tSet; drawTimer(); });
+$('#fFood').addEventListener('submit',e=>{ e.preventDefault(); const q = $('#foodQ').value.trim(); if(q) searchFood(q); });
+$('#foodG').addEventListener('input',()=>{ if(foodResults.length) drawFoodRes(''); });
+$('#fHabit').addEventListener('submit',e=>{ e.preventDefault(); const v = fd(e.target); S.habits.push({id:uid(),icon:'',name:v.name.trim()}); e.target.name.value=''; commit('Hábito agregado'); });
+$('#fAI').addEventListener('submit',e=>{ e.preventDefault(); const f = e.target; CFG.ollamaUrl = f.ollamaUrl.value.trim()||'http://localhost:11434'; CFG.ollamaModel = f.ollamaModel.value; saveCfg(); S.aiMode = f.mode.value; commit('Ajustes de IA guardados'); });
+$('#aiTest').addEventListener('click',testAI);
+$('#fSb').addEventListener('submit',async e=>{ e.preventDefault(); const f = e.target; const u = f.sbUrl.value.trim().replace(/\/+$/,''), k = f.sbKey.value.trim();
+  if(u && !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(u)) return toast('La URL debe verse como https://xxxx.supabase.co');
+  CFG.sbUrl = u; CFG.sbKey = k; saveCfg(); cloud.ready = false; await initCloud(); render(); toast('Conexión guardada'); });
+$('#fAuth').addEventListener('submit',e=>{ e.preventDefault(); authAction('in'); });
+document.querySelector('[data-auth="up"]').addEventListener('click',()=>authAction('up'));
+$('#btnLogout').addEventListener('click',async ()=>{ if(cloud.ready){ clearTimeout(cloud.timer); await syncNow(); } await cloud.sb?.auth.signOut(); cloud.ready = false; toast('Sesión cerrada'); render(); });
+$('#fPin').addEventListener('submit',async e=>{ e.preventDefault(); const p = e.target.pin.value.trim();
+  if(!/^\d{4,8}$/.test(p)) return toast('El PIN debe tener de 4 a 8 números');
+  if(!crypto?.subtle) return toast('Este navegador no permite crear un PIN');
+  const salt = uid()+uid(); S.pin = {salt, hash: await sha256(salt+p)}; unlocked = true; e.target.reset(); commit('PIN guardado'); });
+$('#pinOff').addEventListener('click',async ()=>{ if(!S.pin) return toast('No hay PIN activo'); if(!await askConfirm('¿Quitar el PIN de bloqueo?','Quitar PIN')) return; S.pin = null; commit('PIN quitado'); });
+$('#fLock').addEventListener('submit',async e=>{ e.preventDefault();
+  if(Date.now() < pinWaitUntil) return $('#lockMsg').textContent = `Demasiados intentos. Espera ${Math.ceil((pinWaitUntil-Date.now())/1000)} s.`;
+  const p = $('#pinIn').value.trim();
+  if(S.pin && await sha256(S.pin.salt+p)===S.pin.hash){ unlocked = true; pinFails = 0; $('#lock').classList.remove('open'); $('#lockMsg').textContent=''; return; }
+  pinFails++; $('#pinIn').value=''; if(pinFails>=5){ pinWaitUntil = Date.now()+30000; pinFails = 0; }
+  $('#lockMsg').textContent = Date.now()<pinWaitUntil ? 'Demasiados intentos. Espera 30 s.' : 'PIN incorrecto.'; });
+$('#fGeneral').addEventListener('submit',e=>{ e.preventDefault(); S.name = fd(e.target).name.trim(); commit('Guardado'); });
+$('#btnExport2').addEventListener('click',exportData);
+$('#btnImport2').addEventListener('click',()=>$('#fileImport').click());
+$('#btnReset').addEventListener('click',async ()=>{ if(!await askConfirm('¿Borrar TODOS tus datos? Exporta un respaldo antes.','Borrar todo')) return; const ai = S.ai; S = structuredClone(DEFAULTS); S.ai = ai; commit('Datos borrados'); });
+const fd = f => Object.fromEntries(new FormData(f));
+$('#fSched').addEventListener('submit',e=>{ e.preventDefault(); const v = fd(e.target);
+  if(toMin(v.end)===toMin(v.start)) return toast('La hora de fin debe ser distinta');
+  const days = v.day==='lv'?[1,2,3,4,5]:v.day==='all'?[0,1,2,3,4,5,6]:[+v.day];
+  days.forEach(d=>S.schedule.push({id:uid(),day:d,start:v.start,end:v.end,title:v.title.trim(),cat:v.cat}));
+  e.target.title.value=''; commit('Bloque agregado'); });
+$('#schedCat').innerHTML = Object.keys(SCHED_CATS).map(c=>`<option>${c}</option>`).join('');
+$('#txType').addEventListener('change',fillTxCats); fillTxCats();
+$('#fTx').addEventListener('submit',e=>{ e.preventDefault(); const v = fd(e.target); const amount = Math.round(+v.amount);
+  if(!(amount>0)) return toast('Monto inválido');
+  S.tx.push({id:uid(),type:v.type,amount,cat:v.cat,date:v.date,note:v.note.trim()}); e.target.amount.value=''; e.target.note.value=''; commit('Movimiento guardado'); });
+$('#fBudget').addEventListener('submit',e=>{ e.preventDefault(); S.budget = Math.max(0,+fd(e.target).budget||0); commit('Presupuesto actualizado'); });
+$('#finMonth').addEventListener('change',renderFinanzas);
+$('#fWork').addEventListener('submit',e=>{ e.preventDefault(); const v = fd(e.target);
+  S.workouts.push({id:uid(),date:v.date,ex:v.ex.trim(),sets:+v.sets,reps:+v.reps,kg:+v.kg}); e.target.kg.value=''; commit('Ejercicio guardado'); });
+$('#exSel').addEventListener('change',renderGym);
+$('#routine').addEventListener('input',e=>{ const d=e.target.dataset.rday; if(d!=null){ S.routine[d]=e.target.value; save(); } });
+$('#fWeight').addEventListener('submit',e=>{ e.preventDefault(); const v = fd(e.target); const kg=+v.kg;
+  S.weights = S.weights.filter(w=>w.date!==v.date); S.weights.push({id:uid(),date:v.date,kg});
+  const latest = [...S.weights].sort((a,b)=>b.date.localeCompare(a.date))[0]; S.profile.weight = latest.kg; e.target.kg.value=''; commit('Peso registrado'); });
+$('#fProfile').addEventListener('submit',e=>{ e.preventDefault(); const v = fd(e.target);
+  S.profile = {weight:+v.weight,goal:+v.goal,height:+v.height,age:+v.age,sex:v.sex,activity:+v.activity,surplus:+v.surplus}; commit('Metas recalculadas'); });
+$('#fMeal').addEventListener('submit',e=>{ e.preventDefault(); const v = fd(e.target);
+  S.meals.push({id:uid(),date:today(),name:v.name.trim(),k:+v.kcal,p:+v.p,c:+v.c,f:+v.fat}); e.target.reset(); commit('Comida agregada'); });
+$('#fSleep').addEventListener('submit',e=>{ e.preventDefault(); const v = fd(e.target);
+  if(v.goal) S.sleepGoal = +v.goal;
+  S.sleep = S.sleep.filter(s=>s.date!==v.date); S.sleep.push({id:uid(),date:v.date,bed:v.bed,wake:v.wake,hours:sleepHours(v.bed,v.wake),q:+v.q}); commit('Noche registrada'); });
+$('#chatForm').addEventListener('submit',async e=>{ e.preventDefault(); const t = $('#chatIn').value.trim(); if(!t || chatBusy) return;
+  S.chat.push({r:'u',t}); $('#chatIn').value=''; chatBusy = true; renderChat();
+  let reply; try{ reply = await agentSmart(t); }catch(err){ console.error(err); try{ reply = agent(t); }catch(e2){ reply = 'Ocurrió un error procesando eso. Intenta con otra forma.'; } }
+  chatBusy = false; S.chat.push({r:'a',t:reply}); S.chat = S.chat.slice(-80); save(); if(view==='asistente') renderChat(); else render(); });
+// Respaldo
+$('#btnExport').addEventListener('click',exportData);
+$('#btnImport').addEventListener('click',()=>$('#fileImport').click());
+$('#fileImport').addEventListener('change',async e=>{ const f=e.target.files[0]; if(!f) return;
+  try{ const data = JSON.parse(await f.text()); if(typeof data!=='object'||!Array.isArray(data.tx)) throw new Error('formato'); const ai = S.ai; S = Object.assign(structuredClone(DEFAULTS),data); S.ai = {...AI_DEFAULTS,...(data.ai||{}),anthropicKey:ai.anthropicKey,openaiKey:ai.openaiKey,geminiKey:ai.geminiKey}; commit('Respaldo importado'); }
+  catch(err){ toast('Archivo inválido'); } e.target.value=''; });
+// Fechas por defecto
+document.querySelectorAll('input[type=date]').forEach(i=>{ if(!i.value) i.value = today(); });
+// Reloj
+function tick(){ const n=new Date(); $('#clockTime').textContent=n.toLocaleTimeString('es-CO',{hour:'2-digit',minute:'2-digit'}); $('#clockDate').textContent=n.toLocaleDateString('es-CO',{weekday:'long',day:'numeric',month:'long'}); }
+tick(); setInterval(()=>{ tick(); if(view==='inicio'||view==='horario') render(); },60000);
+go((location.hash.slice(1) in TITLES) ? location.hash.slice(1) : 'inicio');
+if(S.pin?.hash) showLock();
+initCloud();
+// Dictado por voz con la API del navegador (gratis; Chrome y Edge, también en Android)
+(function(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if(!SR) return;
+  const b = $('#micBtn'); b.hidden = false; let rec = null, base = '';
+  b.addEventListener('click',()=>{
+    if(rec){ rec.stop(); return; }
+    rec = new SR(); rec.lang = 'es-CO'; rec.interimResults = true; rec.continuous = false; base = $('#chatIn').value.trim();
+    rec.onresult = ev => { let txt = ''; for(const r of ev.results) txt += r[0].transcript; $('#chatIn').value = (base+' '+txt).trim(); };
+    rec.onerror = ev => { if(ev.error==='not-allowed') toast('Permite el micrófono para dictar'); };
+    rec.onend = () => { rec = null; b.classList.remove('btn-danger'); $('#chatIn').focus(); };
+    b.classList.add('btn-danger'); try{ rec.start(); }catch(e){ rec = null; b.classList.remove('btn-danger'); }
+  });
+})();
+if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
